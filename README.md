@@ -1,1 +1,1 @@
-# PARA NÃO POLUIR OS COMPUTADORES UNS DOS OUTROS COM DIFERENTES CONFIGS DE SERVIDORES (por razões de falta de compatibilidade) COLOQUEM TODAS AS CONFIGURAÇÕES (todas as pastas de cada shard, dirs /data, /log, etc.) NUMA PASTA CHAMADA SERVERS (que devem criar)
+# para não poluir os computadores uns dos outros com diferentes configs de servidores (por razões de falta de compatibilidade) coloquem todas as configurações (todas as pastas de cada shard, dirs /data, /log, etc.) numa pasta chamada *servers* (que devem criar)
