@@ -84,7 +84,7 @@ public class CloudToMongo  implements MqttCallback {
             mqttclient = new MqttClient(cloud_server, "CloudToMongo_"+String.valueOf(i)+"_"+cloud_topic);
             mqttclient.connect();
             mqttclient.setCallback(this);
-            mqttclient.subscribe(cloud_topic);
+            mqttclient.subscribe(cloud_topic.split(","));
         } catch (MqttException e) {
             e.printStackTrace();
         }
