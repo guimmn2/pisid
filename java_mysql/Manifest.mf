@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: WriteMysql
+Class-Path: mariadb-java-client-2.7.3.jar 
+
