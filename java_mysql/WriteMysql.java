@@ -81,15 +81,8 @@ public class WriteMysql {
     }
 
 
+	// func to read MQTT messages
 	public void ReadData() {
-		String doc = new String();
-		int i=0;		
-	    while (i<100) {	
-				doc = "{Name:\"Nome_"+i+"\", Location:\"Portugal\", id:"+i+"}";
-				//WriteToMySQL(com.mongodb.util.JSON.serialize(doc));						
-				WriteToMySQL(doc);		
-				i++;				
-		}										
 	}
 
 	public void WriteToMySQL (String c){	

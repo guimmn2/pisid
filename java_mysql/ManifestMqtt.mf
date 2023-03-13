@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: MqttToMysql
+Class-Path: mariadb-java-client-2.7.3.jar org.eclipse.paho.client.mqttv3-1.1.0.jar
+
