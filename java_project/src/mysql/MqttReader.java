@@ -68,7 +68,7 @@ public class MqttReader implements MqttCallback {
 	public void messageArrived(String topic, MqttMessage message) throws Exception {
 		System.out.println("topic: " + topic + " message: " + message.toString());
 		System.out.println("writing to mysql");
-		sqlWriter.writeTest(message.toString());
+		//sqlWriter.writeTest(message.toString());
 	}
 
 }
