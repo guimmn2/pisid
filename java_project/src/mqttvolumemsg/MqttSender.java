@@ -50,7 +50,7 @@ public class MqttSender implements MqttCallback {
 		for(int i = 0; i < 10000; i++) {
 			String mov = "{hour:2023-01-09 10:43:49.816173, from:1, to:3}";
 			String temp = "{1, 2023-01-09 10:48:26.220914, 9}";
-			String alert = "Alerta_type=1, hour:2023-01-09 10:43:49.816173, High_temp";
+			String alert = "{Alerta_type=1, hour:2023-01-09 10:43:49.816173, High_temp}";
 			double random = Math.random();
 			if(random < 0.33) fakeMessage(mov);
 			else if (random < 0.66) fakeMessage(temp);
