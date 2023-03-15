@@ -5,13 +5,11 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
 
-import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.paho.client.mqttv3.*;
 
 public class MqttReader implements MqttCallback {
 	
 	private MqttClient client;
-	private ObjectMapper mapper;
 	private String server;
 	private String[] topics;
 	
@@ -23,10 +21,9 @@ public class MqttReader implements MqttCallback {
 	public MqttReader() {
 		try {
             Properties p = new Properties();
-            p.load(new FileInputStream("assets/ReceiveCloud.ini"));
+            p.load(new FileInputStream("config_files/ReceiveCloud.ini"));
             server = p.getProperty("cloud_server");
             topics = p.getProperty("cloud_topic").split(",");
-            mapper = new ObjectMapper();
         } catch (Exception e) {
             System.out.println("Error reading ReceiveCloud.ini file " + e);
         }
