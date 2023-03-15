@@ -41,8 +41,6 @@ public class MqttReader implements MqttCallback {
             e.printStackTrace();
         }
     }
-
-
 	@Override
 	public void connectionLost(Throwable arg0) {
 		// TODO Auto-generated method stub
