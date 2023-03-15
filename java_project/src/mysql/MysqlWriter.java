@@ -1,4 +1,4 @@
-package pisid_mysql;
+package mysql;
 
 import java.sql.Connection;
 

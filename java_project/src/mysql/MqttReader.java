@@ -1,4 +1,4 @@
-package pisid_mysql;
+package mysql;
 
 import java.io.FileInputStream;
 import java.util.Arrays;
@@ -36,7 +36,7 @@ public class MqttReader implements MqttCallback {
 		int i;
         try {
 			i = new Random().nextInt(100000);
-            client = new MqttClient(server, "mqtt/ReceiveCloud"+String.valueOf(i)+"_" + Arrays.toString(topics));
+            client = new MqttClient(server, "mqtt_generated_files/ReceiveCloud"+String.valueOf(i)+"_" + Arrays.toString(topics));
             client.connect();
             client.setCallback(this);
             client.subscribe(topics);
