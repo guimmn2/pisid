@@ -1,4 +1,5 @@
+java_project/config_files
 /servers
-java_to_mongo_mqtt/CloudToMongo_*/
-java_mqtt/SimulateSensor*/
-java_mqtt/ReceiveCloud*/
+old_stuff/java_to_mongo_mqtt/CloudToMongo_*/
+old_stuff/java_mqtt/SimulateSensor*/
+old_stuff/java_mqtt/ReceiveCloud*/
