@@ -25,7 +25,7 @@ public class MqttReader implements MqttCallback {
 	public MqttReader() {
 		try {
             Properties p = new Properties();
-            p.load(new FileInputStream("assets/ReceiveCloud.ini"));
+            p.load(new FileInputStream("config_files/ReceiveCloud.ini"));
             server = p.getProperty("cloud_server");
             topics = p.getProperty("cloud_topic").split(",");
             sqlWriter = new MysqlWriter();
