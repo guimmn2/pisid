@@ -5,12 +5,13 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.Random;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.paho.client.mqttv3.*;
 
 public class MqttReader implements MqttCallback {
 	
 	private MqttClient client;
-	//eventualmente de um parser de Json
+	private ObjectMapper mapper;
 	private String server;
 	private String[] topics;
 	
@@ -25,6 +26,7 @@ public class MqttReader implements MqttCallback {
             p.load(new FileInputStream("assets/ReceiveCloud.ini"));
             server = p.getProperty("cloud_server");
             topics = p.getProperty("cloud_topic").split(",");
+            mapper = new ObjectMapper();
         } catch (Exception e) {
             System.out.println("Error reading ReceiveCloud.ini file " + e);
         }
@@ -34,7 +36,7 @@ public class MqttReader implements MqttCallback {
 		int i;
         try {
 			i = new Random().nextInt(100000);
-            client = new MqttClient(server, "ReceiveCloud"+String.valueOf(i)+"_" + Arrays.toString(topics));
+            client = new MqttClient(server, "mqtt/ReceiveCloud"+String.valueOf(i)+"_" + Arrays.toString(topics));
             client.connect();
             client.setCallback(this);
             client.subscribe(topics);
@@ -58,7 +60,7 @@ public class MqttReader implements MqttCallback {
 
 	@Override
 	public void messageArrived(String topic, MqttMessage message) throws Exception {
-		System.out.println("topic: " + topic + ", message: " + message.toString());
+		System.out.println("topic: " + topic + " message: " + message.toString());
 	}
 
 }
