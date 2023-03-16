@@ -29,7 +29,7 @@ public class MqttToMysql {
 	public static void main(String[] args) throws Exception {
 		Properties p = new Properties();
 
-		//get MQTT configs from .ini file
+		// get MQTT configs from .ini file
 		p.load(new FileInputStream("config_files/ReceiveCloud.ini"));
 		mqttBroker = p.getProperty("cloud_server");
 		mqttTopics = p.getProperty("cloud_topic").split(",");
@@ -102,17 +102,20 @@ public class MqttToMysql {
 
 			@Override
 			public void run() {
-				while (true) {
-					try (Connection conn = dataSource.getConnection()) {
+				try (Connection conn = dataSource.getConnection()) {
+					while (true) {
+
 						String message = temperatureQueue.take();
-						PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperatura (Leitura, Sensor) values (?, ?)");
-						
+						PreparedStatement stmnt = conn
+								.prepareStatement("insert into mediçõestemperatura (Leitura, Sensor) values (?, ?)");
+						stmnt.setDouble(1, 2.2);
+						stmnt.setInt(2, 2);
 						stmnt.executeUpdate();
 						System.out.println("temperature thread: " + message);
-					} catch (InterruptedException | SQLException e ) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
 					}
+				} catch (InterruptedException | SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 		}).start();
@@ -122,15 +125,20 @@ public class MqttToMysql {
 
 			@Override
 			public void run() {
-				while (true) {
-					try (Connection conn = dataSource.getConnection()) {
+				try (Connection conn = dataSource.getConnection()) {
+					while (true) {
+
 						String message = movementQueue.take();
-						//PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
+						PreparedStatement stmnt = conn.prepareStatement(
+								"insert into mediçõespassagens (SalaEntrada, SalaSaída) values (?, ?)");
+						stmnt.setInt(1, 2);
+						stmnt.setInt(2, 2);
+						stmnt.executeUpdate();
 						System.out.println("movement thread: " + message);
-					} catch (InterruptedException | SQLException e ) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
 					}
+				} catch (InterruptedException | SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 		}).start();
@@ -143,9 +151,10 @@ public class MqttToMysql {
 				while (true) {
 					try (Connection conn = dataSource.getConnection()) {
 						String message = alertsQueue.take();
-						//PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
+						// PreparedStatement stmnt = conn.prepareStatement("insert into
+						// mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
 						System.out.println("alerts thread: " + message);
-					} catch (InterruptedException | SQLException e ) {
+					} catch (InterruptedException | SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
