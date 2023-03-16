@@ -96,6 +96,7 @@ public class CloudToMongo  implements MqttCallback {
             mqttclient.connect();
             mqttclient.setCallback(this);
             mqttclient.subscribe(cloud_topic.split(","));
+            System.out.println("Connect Cloud ");
         } catch (MqttException e) {
             e.printStackTrace();
         }
@@ -110,12 +111,14 @@ public class CloudToMongo  implements MqttCallback {
 			if (mongo_authentication.equals("true")) mongoURI = mongoURI + "/?replicaSet=" + mongo_replica+"&authSource=admin";
 			else mongoURI = mongoURI + "/?replicaSet=" + mongo_replica;		
 		else
-			if (mongo_authentication.equals("true")) mongoURI = mongoURI  + "/?authSource=admin";			
+			if (mongo_authentication.equals("true")) mongoURI = mongoURI  + "/?authSource=admin";
+		System.out.println(mongoURI);
 		MongoClient mongoClient = new MongoClient(new MongoClientURI(mongoURI));						
 		db = mongoClient.getDB(mongo_database);
         temps = db.getCollection(mongo_collection);
-        movs= db.getCollection(mongo_collection_1);		
+        movs= db.getCollection(mongo_collection_1);
         lightWarnings = db.getCollection(mongo_collection_2);
+     
        // ratsCount.start();
 
     }
@@ -124,10 +127,10 @@ public class CloudToMongo  implements MqttCallback {
     public void messageArrived(String topic, MqttMessage c)
             throws Exception {
         try {
-        	System.out.println("Mensagem C ->>> " + c);
+        	System.out.println("Mnesagem C " + topic);
                 DBObject document_json;
                 document_json = (DBObject) JSON.parse(c.toString());
-                if(document_json.containsField("Sensor"))
+                if(topic.equals("pisid_mazetemp"))
                 	temps.insert(document_json);
                 else {
                 	movs.insert(document_json);
