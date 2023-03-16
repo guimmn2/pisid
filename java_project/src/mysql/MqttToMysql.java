@@ -2,6 +2,7 @@ package mysql;
 
 import java.io.FileInputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
@@ -104,7 +105,9 @@ public class MqttToMysql {
 				while (true) {
 					try (Connection conn = dataSource.getConnection()) {
 						String message = temperatureQueue.take();
-						//PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
+						PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperatura (Leitura, Sensor) values (?, ?)");
+						
+						stmnt.executeUpdate();
 						System.out.println("temperature thread: " + message);
 					} catch (InterruptedException | SQLException e ) {
 						// TODO Auto-generated catch block
