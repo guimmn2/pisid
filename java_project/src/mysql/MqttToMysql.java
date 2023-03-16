@@ -1,12 +1,10 @@
 package mysql;
 
+import java.io.FileInputStream;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -18,69 +16,143 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
 public class MqttToMysql {
-    
-    private static final String MQTT_BROKER = "tcp://localhost:1883";
-    private static final String MQTT_TOPIC = "mytopic";
-    private static final String MYSQL_URL = "jdbc:mysql://localhost:3306/mydatabase";
-    private static final String MYSQL_USER = "myuser";
-    private static final String MYSQL_PASSWORD = "mypassword";
-    private static final int THREAD_POOL_SIZE = 10;
-    private static final int CONNECTION_POOL_SIZE = 10;
-    
-    public static void main(String[] args) throws Exception {
-        // Set up MQTT client
-        MqttClient client = new MqttClient(MQTT_BROKER, MqttClient.generateClientId());
-        client.connect();
-        client.subscribe(MQTT_TOPIC);
-        
-        // Set up HikariCP connection pool
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(MYSQL_URL);
-        config.setUsername(MYSQL_USER);
-        config.setPassword(MYSQL_PASSWORD);
-        config.setMaximumPoolSize(CONNECTION_POOL_SIZE);
-        HikariDataSource dataSource = new HikariDataSource(config);
-        
-        // Set up thread pool and message queue
-        ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-        BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>();
-        
-        // Set up message listener
-        client.setCallback(new MqttCallback() {
-            public void connectionLost(Throwable throwable) {}
-            public void messageArrived(String s, MqttMessage mqttMessage) {
-                String message = new String(mqttMessage.getPayload());
-                messageQueue.add(message);
-                System.out.println("Received message: " + message);
-            }
-            public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {}
-        });
-        
-        // Start thread to handle database insertions
-        executor.execute(() -> {
-            while (true) {
-                try {
-                    String message = messageQueue.take();
-                    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-                    
-                    try (Connection conn = dataSource.getConnection()) {
-                        String insertQuery = "INSERT INTO mytable (timestamp, message) VALUES (?, ?)";
-                        PreparedStatement stmt = conn.prepareStatement(insertQuery);
-                        stmt.setTimestamp(1, timestamp);
-                        stmt.setString(2, message);
-                        stmt.executeUpdate();
-                    }
-                    
-                    System.out.println("Inserted message: " + message);
-                } catch (InterruptedException | SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        
-        // Wait for messages
-        while (true) {
-            Thread.sleep(1000);
-        }
-    }
+
+	private static String mqttBroker;
+	private static String[] mqttTopics;
+	private static String dbUrl;
+	private static String dbUser;
+	private static String dbPassword;
+	private static final int N_TABLES_TO_WRITE = 3;
+	private static final int MQTT_MESSAGE_QUEUE_SIZE = 1000;
+
+	public static void main(String[] args) throws Exception {
+		Properties p = new Properties();
+
+		//get MQTT configs from .ini file
+		p.load(new FileInputStream("config_files/ReceiveCloud.ini"));
+		mqttBroker = p.getProperty("cloud_server");
+		mqttTopics = p.getProperty("cloud_topic").split(",");
+
+		// Set up MQTT client
+		MqttClient client = new MqttClient(mqttBroker, MqttClient.generateClientId());
+		client.connect();
+		client.subscribe(mqttTopics);
+
+		// get SQL configs from .ini file
+		p.load(new FileInputStream("config_files/WriteMysql.ini"));
+		dbUrl = p.getProperty("sql_database_connection_to");
+		dbPassword = p.getProperty("sql_database_password_to");
+		System.out.println("password is: " + dbPassword);
+		dbUser = p.getProperty("sql_database_user_to");
+
+		// Set up HikariCP connection pool
+		HikariConfig config = new HikariConfig();
+
+		config.setJdbcUrl(dbUrl);
+		config.setUsername(dbUser);
+		config.setPassword(dbPassword);
+		config.setMaximumPoolSize(N_TABLES_TO_WRITE);
+		HikariDataSource dataSource = new HikariDataSource(config);
+
+		// Set up message queues for each topic
+
+		BlockingQueue<String> temperatureQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
+		BlockingQueue<String> movementQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
+		BlockingQueue<String> alertsQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
+
+		// Set up message listener
+		client.setCallback(new MqttCallback() {
+
+			public void connectionLost(Throwable throwable) {
+				// handle losing connection
+			}
+
+			public void messageArrived(String topic, MqttMessage mqttMessage) throws InterruptedException {
+				String message = new String(mqttMessage.getPayload());
+
+				switch (topic) {
+				case "readings/temp": {
+					System.out.println("temp message: " + message);
+					temperatureQueue.put(message);
+					break;
+				}
+				case "readings/mov": {
+					System.out.println("mov message: " + message);
+					movementQueue.put(message);
+					break;
+				}
+				case "lightWarnings": {
+					System.out.println("alert message: " + message);
+					alertsQueue.put(message);
+					break;
+				}
+				default:
+					throw new IllegalArgumentException("Unexpected value: " + topic);
+				}
+			}
+
+			public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
+				// handle delivery complete for certain messages ?
+			}
+		});
+
+		// temperature thread
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				while (true) {
+					try (Connection conn = dataSource.getConnection()) {
+						String message = temperatureQueue.take();
+						//PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
+						System.out.println("temperature thread: " + message);
+					} catch (InterruptedException | SQLException e ) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+
+		// movement thread
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				while (true) {
+					try (Connection conn = dataSource.getConnection()) {
+						String message = movementQueue.take();
+						//PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
+						System.out.println("movement thread: " + message);
+					} catch (InterruptedException | SQLException e ) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+
+		// alerts thread
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				while (true) {
+					try (Connection conn = dataSource.getConnection()) {
+						String message = alertsQueue.take();
+						//PreparedStatement stmnt = conn.prepareStatement("insert into mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
+						System.out.println("alerts thread: " + message);
+					} catch (InterruptedException | SQLException e ) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}).start();
+
+		// Wait for messages
+		while (true) {
+			Thread.sleep(1000);
+		}
+	}
 }
