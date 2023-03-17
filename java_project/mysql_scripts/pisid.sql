@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 15, 2023 at 01:48 PM
+-- Generation Time: Mar 17, 2023 at 03:32 PM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -28,95 +28,95 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `alerta` (
-  `IDAlerta` int(11) NOT NULL,
-  `Hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `Sala` int(11) NOT NULL,
-  `Sensor` int(11) NOT NULL,
-  `Leitura` decimal(4,2) NOT NULL,
-  `TipoAlerta` varchar(20) NOT NULL,
-  `Mensagem` varchar(100) NOT NULL,
-  `HoraEscrita` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `id` int(11) NOT NULL,
+  `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `sala` int(11) NOT NULL,
+  `sensor` int(11) NOT NULL,
+  `leitura` decimal(4,2) NOT NULL,
+  `tipo` varchar(20) NOT NULL DEFAULT 'light',
+  `mensagem` varchar(100) NOT NULL,
+  `horaescrita` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `experiência`
+-- Table structure for table `experiencia`
 --
 
-CREATE TABLE `experiência` (
-  `IDExperiência` int(11) NOT NULL,
-  `Descrição` text NOT NULL,
-  `Investigador` varchar(50) NOT NULL,
-  `DataHora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `NúmeroRatos` int(11) NOT NULL,
-  `LimiteRatosSala` int(11) NOT NULL,
-  `SegundosSemMovimento` int(11) NOT NULL,
-  `TemperaturaIdeal` decimal(4,2) NOT NULL,
-  `VariaçãoTemperaturaMáxima` decimal(4,2) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `experiencia` (
+  `id` int(11) NOT NULL,
+  `descricao` text NOT NULL,
+  `investigador` varchar(50) DEFAULT NULL,
+  `datahora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `numeroratos` int(11) NOT NULL,
+  `limiteratossala` int(11) NOT NULL,
+  `segundossemmovimento` int(11) NOT NULL,
+  `temperaturaideal` decimal(4,2) NOT NULL,
+  `variacaotemperaturamaxima` decimal(4,2) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `mediçõespassagens`
+-- Table structure for table `medicoespassagens`
 --
 
-CREATE TABLE `mediçõespassagens` (
-  `IDMedição` int(11) NOT NULL,
-  `Hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `SalaEntrada` int(11) NOT NULL,
-  `SalaSaída` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `medicoespassagens` (
+  `id` int(11) NOT NULL,
+  `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `salaentrada` int(11) NOT NULL,
+  `salasaida` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `mediçõessala`
+-- Table structure for table `medicoessala`
 --
 
-CREATE TABLE `mediçõessala` (
-  `Sala` int(11) NOT NULL,
-  `IDExperiência` int(11) NOT NULL,
-  `NúmeroRatosFinal` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `medicoessala` (
+  `idexperiencia` int(11) NOT NULL,
+  `numeroratosfinal` int(11) NOT NULL,
+  `sala` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `mediçõestemperatura`
+-- Table structure for table `medicoestemperatura`
 --
 
-CREATE TABLE `mediçõestemperatura` (
-  `IDMedição` int(11) NOT NULL,
-  `Hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `Leitura` decimal(4,2) NOT NULL,
-  `Sensor` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `medicoestemperatura` (
+  `id` int(11) NOT NULL,
+  `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `leitura` decimal(4,2) NOT NULL,
+  `sensor` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `odoresexperiência`
+-- Table structure for table `odoresexperiencia`
 --
 
-CREATE TABLE `odoresexperiência` (
-  `Sala` int(11) NOT NULL,
-  `IDExperiência` int(11) NOT NULL,
-  `CódigoOdor` varchar(5) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `odoresexperiencia` (
+  `sala` int(11) NOT NULL,
+  `idexperiencia` int(11) NOT NULL,
+  `codigoodor` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `substânciasexperiência`
+-- Table structure for table `substanciasexperiencia`
 --
 
-CREATE TABLE `substânciasexperiência` (
-  `NúmeroRatos` int(11) NOT NULL,
-  `CódigoSubstância` varchar(5) NOT NULL,
-  `IDExperiência` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+CREATE TABLE `substanciasexperiencia` (
+  `numeroratos` int(11) NOT NULL,
+  `codigosubstancia` varchar(5) NOT NULL,
+  `idexperiencia` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
@@ -125,11 +125,12 @@ CREATE TABLE `substânciasexperiência` (
 --
 
 CREATE TABLE `utilizador` (
-  `NomeUtilizador` varchar(100) NOT NULL,
-  `TelefoneUtilizador` varchar(12) NOT NULL,
-  `TipoUtilizador` varchar(3) NOT NULL,
-  `EmailUtilizador` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `nome` varchar(100) NOT NULL,
+  `telefone` varchar(12) NOT NULL,
+  `tipo` varchar(3) NOT NULL,
+  `email` varchar(50) NOT NULL,
+  `password` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Indexes for dumped tables
@@ -139,75 +140,108 @@ CREATE TABLE `utilizador` (
 -- Indexes for table `alerta`
 --
 ALTER TABLE `alerta`
-  ADD PRIMARY KEY (`IDAlerta`);
+  ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `experiência`
+-- Indexes for table `experiencia`
 --
-ALTER TABLE `experiência`
-  ADD PRIMARY KEY (`IDExperiência`);
+ALTER TABLE `experiencia`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `investigador` (`investigador`);
 
 --
--- Indexes for table `mediçõespassagens`
+-- Indexes for table `medicoespassagens`
 --
-ALTER TABLE `mediçõespassagens`
-  ADD PRIMARY KEY (`IDMedição`);
+ALTER TABLE `medicoespassagens`
+  ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `mediçõessala`
+-- Indexes for table `medicoessala`
 --
-ALTER TABLE `mediçõessala`
-  ADD PRIMARY KEY (`Sala`,`IDExperiência`),
-  ADD KEY `IDExperiência` (`IDExperiência`);
+ALTER TABLE `medicoessala`
+  ADD PRIMARY KEY (`idexperiencia`,`sala`);
 
 --
--- Indexes for table `mediçõestemperatura`
+-- Indexes for table `medicoestemperatura`
 --
-ALTER TABLE `mediçõestemperatura`
-  ADD PRIMARY KEY (`IDMedição`);
+ALTER TABLE `medicoestemperatura`
+  ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `odoresexperiência`
+-- Indexes for table `odoresexperiencia`
 --
-ALTER TABLE `odoresexperiência`
-  ADD PRIMARY KEY (`Sala`,`IDExperiência`),
-  ADD KEY `IDExperiência` (`IDExperiência`);
+ALTER TABLE `odoresexperiencia`
+  ADD PRIMARY KEY (`sala`,`idexperiencia`),
+  ADD KEY `idexperiencia` (`idexperiencia`);
 
 --
--- Indexes for table `substânciasexperiência`
+-- Indexes for table `substanciasexperiencia`
 --
-ALTER TABLE `substânciasexperiência`
-  ADD PRIMARY KEY (`CódigoSubstância`),
-  ADD KEY `IDExperiência` (`IDExperiência`);
+ALTER TABLE `substanciasexperiencia`
+  ADD PRIMARY KEY (`codigosubstancia`,`idexperiencia`),
+  ADD KEY `idexperiencia` (`idexperiencia`);
 
 --
 -- Indexes for table `utilizador`
 --
 ALTER TABLE `utilizador`
-  ADD PRIMARY KEY (`EmailUtilizador`);
+  ADD PRIMARY KEY (`email`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `alerta`
+--
+ALTER TABLE `alerta`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `experiencia`
+--
+ALTER TABLE `experiencia`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `medicoespassagens`
+--
+ALTER TABLE `medicoespassagens`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `medicoestemperatura`
+--
+ALTER TABLE `medicoestemperatura`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
 --
 
 --
--- Constraints for table `mediçõessala`
+-- Constraints for table `experiencia`
 --
-ALTER TABLE `mediçõessala`
-  ADD CONSTRAINT `mediçõessala_ibfk_1` FOREIGN KEY (`IDExperiência`) REFERENCES `experiência` (`IDExperiência`),
-  ADD CONSTRAINT `mediçõessala_ibfk_2` FOREIGN KEY (`Sala`) REFERENCES `odoresexperiência` (`Sala`);
+ALTER TABLE `experiencia`
+  ADD CONSTRAINT `experiencia_ibfk_1` FOREIGN KEY (`investigador`) REFERENCES `utilizador` (`email`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
--- Constraints for table `odoresexperiência`
+-- Constraints for table `medicoessala`
 --
-ALTER TABLE `odoresexperiência`
-  ADD CONSTRAINT `odoresexperiência_ibfk_1` FOREIGN KEY (`IDExperiência`) REFERENCES `experiência` (`IDExperiência`);
+ALTER TABLE `medicoessala`
+  ADD CONSTRAINT `medicoessala_ibfk_1` FOREIGN KEY (`idexperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
--- Constraints for table `substânciasexperiência`
+-- Constraints for table `odoresexperiencia`
 --
-ALTER TABLE `substânciasexperiência`
-  ADD CONSTRAINT `substânciasexperiência_ibfk_1` FOREIGN KEY (`IDExperiência`) REFERENCES `experiência` (`IDExperiência`);
+ALTER TABLE `odoresexperiencia`
+  ADD CONSTRAINT `odoresexperiencia_ibfk_1` FOREIGN KEY (`idexperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `substanciasexperiencia`
+--
+ALTER TABLE `substanciasexperiencia`
+  ADD CONSTRAINT `substanciasexperiencia_ibfk_1` FOREIGN KEY (`idexperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
