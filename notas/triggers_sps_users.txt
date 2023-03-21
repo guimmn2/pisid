@@ -1,0 +1,23 @@
+Questões:
+Precisamos de associar medições a experiências para a posteridade ?
+O investigador deve ter acesso às medições em tempo real ?
+Como é que associamos o utilizador da aplicação com o perfil correcto ?
+Qual é a diferença entre o investigador e o técnico de manutenção ?
+Como é que sabemos quando criar alertas se a temperatura ideal, a variação máxima de temperatura e o limite de ratos por sala varia de experiência para experiência, sendo que as experiências não estão associadas às medições de temperatura, nem de passagens.
+- Como é que sabemos qual é a experiência que está a decorrer ?
+
+Triggers:
+Criar Alerta quando alguma anomalia nas passagens ou temperatura.
+Na tabela Alerta ter trigger que, a cada insert, define tipo de alerta (temp - temp_ideal > var -> urgente; else -> light)
+Quando experiência acaba (quando recebemos leitura de passagem Entrada:0 Saida:0) escrever na tabela MediçõesSala.
+
+SPs/Funcs/Php:
+Autenticação (login) (encriptar passwords?)
+Garantir que investigadores apenas vêem/alteram as experiências às quais estão associados.
+Impedir que experiências que já tenham começado possam ser alteradas.
+
+Users:
+Admin (SUPER USER)
+Admin App: cria utilizadores Investigadores e Técnicos, pode assignar experiências a investigadores
+Investigador: cria/altera experiências
+Técnico (de manutenção): recebe alertas das temperaturas, monitoriza temperaturas em tempo real, para poder proceder a eventuais arranjos
