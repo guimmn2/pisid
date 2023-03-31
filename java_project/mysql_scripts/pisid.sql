@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 17, 2023 at 03:32 PM
+-- Generation Time: Mar 31, 2023 at 12:45 PM
 -- Server version: 10.4.27-MariaDB
 -- PHP Version: 8.2.0
 
@@ -48,13 +48,23 @@ CREATE TABLE `experiencia` (
   `id` int(11) NOT NULL,
   `descricao` text NOT NULL,
   `investigador` varchar(50) DEFAULT NULL,
-  `datahora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `DataHoraInicio` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `DataHoraFim` timestamp NULL DEFAULT NULL,
   `numeroratos` int(11) NOT NULL,
   `limiteratossala` int(11) NOT NULL,
   `segundossemmovimento` int(11) NOT NULL,
   `temperaturaideal` decimal(4,2) NOT NULL,
   `variacaotemperaturamaxima` decimal(4,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `experiencia`
+--
+
+INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, `DataHoraFim`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`) VALUES
+(1, 'ww', NULL, '2023-03-17 21:34:58', '2023-03-17 21:35:04', 3, 3, 3, '22.00', '10.00'),
+(2, 'ww', NULL, '2023-03-17 21:40:25', NULL, 3, 3, 3, '22.22', '10.22'),
+(3, 'ww', NULL, NULL, NULL, 3, 3, 3, '22.22', '10.10');
 
 -- --------------------------------------------------------
 
@@ -133,6 +143,13 @@ CREATE TABLE `utilizador` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
+-- Dumping data for table `utilizador`
+--
+
+INSERT INTO `utilizador` (`nome`, `telefone`, `tipo`, `email`, `password`) VALUES
+('ww', 'ww', 'ww', 'ww', 'ww');
+
+--
 -- Indexes for dumped tables
 --
 
@@ -201,7 +218,7 @@ ALTER TABLE `alerta`
 -- AUTO_INCREMENT for table `experiencia`
 --
 ALTER TABLE `experiencia`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `medicoespassagens`
