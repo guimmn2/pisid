@@ -1,6 +1,7 @@
 package mysql;
 
 import java.io.FileInputStream;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -13,6 +14,8 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -106,11 +109,14 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = temperatureQueue.take();
-						PreparedStatement stmnt = conn
-								.prepareStatement("insert into mediçõestemperatura (Leitura, Sensor) values (?, ?)");
-						stmnt.setDouble(1, 2.2);
-						stmnt.setInt(2, 2);
-						stmnt.executeUpdate();
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+                        String hora = objMSG.get("Hora").getAsString();
+                        double leitura = objMSG.get("Leitura").getAsDouble();
+                        int sensor = objMSG.get("Sensor").getAsInt();
+						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
+						cs.setInt(1,sensor);
+						cs.setString(2,hora);
+						cs.setDouble(3, leitura);
 						System.out.println("temperature thread: " + message);
 					}
 				} catch (InterruptedException | SQLException e) {
