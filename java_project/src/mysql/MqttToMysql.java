@@ -110,13 +110,17 @@ public class MqttToMysql {
 
 						String message = temperatureQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+						
                         String hora = objMSG.get("Hora").getAsString();
                         double leitura = objMSG.get("Leitura").getAsDouble();
                         int sensor = objMSG.get("Sensor").getAsInt();
+
 						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
 						cs.setInt(1,sensor);
 						cs.setString(2,hora);
 						cs.setDouble(3, leitura);
+						
+						cs.executeUpdate();
 						System.out.println("temperature thread: " + message);
 					}
 				} catch (InterruptedException | SQLException e) {
@@ -133,14 +137,7 @@ public class MqttToMysql {
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
 					while (true) {
-
 						String message = movementQueue.take();
-						PreparedStatement stmnt = conn.prepareStatement(
-								"insert into mediçõespassagens (SalaEntrada, SalaSaída) values (?, ?)");
-						stmnt.setInt(1, 2);
-						stmnt.setInt(2, 2);
-						stmnt.executeUpdate();
-						System.out.println("movement thread: " + message);
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block

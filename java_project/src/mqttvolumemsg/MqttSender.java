@@ -62,7 +62,7 @@ public class MqttSender implements MqttCallback {
 		    double temperature = Math.random() * 15;
 		    
 			String mov = "{Hora:" + timestampString + ", SalaEntrada:1, SalaSaida:3}";
-			String temp = "{Sensor: 1, Hora: " + timestampString + ", Leitura: "+ String.valueOf(temperature) + "}";
+			String temp = "{Sensor: 1, Hora: \"" + timestampString + "\", Leitura: \"" + temperature + "\"}";
 
 			double random = Math.random();
 			if(random < 0.33) fakeMessage(mov, "readings/mov");
