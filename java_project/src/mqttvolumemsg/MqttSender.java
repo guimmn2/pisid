@@ -1,6 +1,8 @@
 package mqttvolumemsg;
 
 import java.io.FileInputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Properties;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -48,13 +50,23 @@ public class MqttSender implements MqttCallback {
 		MqttSender mongoSender = new MqttSender();
 		mongoSender.connectToMqtt();
 		for(int i = 0; i < 10000; i++) {
-			String mov = "{hour:2023-01-09 10:43:49.816173, from:1, to:3}";
-			String temp = "{1, 2023-01-09 10:48:26.220914, 9}";
-			String alert = "{Alerta_type=1, hour:2023-01-09 10:43:49.816173, High_temp}";
+			
+			LocalDateTime currentDateTime = LocalDateTime.now();
+
+		    // Define a formatter for the timestamp string
+		    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+
+		    // Format the timestamp as a string
+		    String timestampString = currentDateTime.format(formatter);
+		    
+		    double temperature = Math.random() * 15;
+		    
+			String mov = "{Hora:" + timestampString + ", SalaEntrada:1, SalaSaida:3}";
+			String temp = "{Sensor: 1, Hora: " + timestampString + ", Leitura: "+ String.valueOf(temperature) + "}";
+
 			double random = Math.random();
 			if(random < 0.33) fakeMessage(mov, "readings/mov");
-			else if (random < 0.66) fakeMessage(temp, "readings/temp");
-			else fakeMessage(alert, "lightWarnings");
+			else fakeMessage(temp, "readings/temp");
 		}
 	}
 
