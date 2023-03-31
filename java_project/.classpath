@@ -13,5 +13,6 @@
 	<classpathentry kind="lib" path="lib/org.eclipse.paho.client.mqttv3-1.1.0.jar"/>
 	<classpathentry kind="lib" path="lib/HikariCP-5.0.1.jar"/>
 	<classpathentry kind="lib" path="lib/slf4j-api-2.0.0-alpha1.jar"/>
+	<classpathentry kind="lib" path="lib/gson-2.10.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
