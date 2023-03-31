@@ -1,4 +1,4 @@
 /servers
-java_to_mongo_mqtt/CloudToMongo_*/
+java_project/CloudToMongo*/
 java_mqtt/SimulateSensor*/
 java_mqtt/ReceiveCloud*/
