@@ -1,5 +1,13 @@
 java_project/config_files
 /servers
+<<<<<<< HEAD
 old_stuff/java_to_mongo_mqtt/CloudToMongo_*/
 old_stuff/java_mqtt/SimulateSensor*/
 old_stuff/java_mqtt/ReceiveCloud*/
+=======
+java_to_mongo_mqtt/CloudToMongo_*/
+java_mqtt/SimulateSensor*/
+java_mqtt/ReceiveCloud*/
+java_project/paho*
+java_project/SimulateSensor*
+>>>>>>> stored_procs

@@ -1,0 +1,5 @@
+PARA COISAS QUE É NECESSÁRIO CONHECIMENTO DE OUTRAS COISAS NA BD USAR SPs !
+usar timestamp como 'id' da experiência
+verificar id na tabela mediçõesSalas para saber se experiência já terminou
+usar o técnico para o que eu quiser xdd
+- por exemplo, ver temperaturas em tempo real
