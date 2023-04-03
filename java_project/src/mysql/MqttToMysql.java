@@ -3,8 +3,10 @@ package mysql;
 import java.io.FileInputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -116,8 +118,8 @@ public class MqttToMysql {
                         int sensor = objMSG.get("Sensor").getAsInt();
 
 						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
-						cs.setInt(1,sensor);
-						cs.setString(2,hora);
+						cs.setInt(1, sensor);
+						cs.setTimestamp(2, Timestamp.valueOf(hora));
 						cs.setDouble(3, leitura);
 						
 						cs.executeUpdate();
