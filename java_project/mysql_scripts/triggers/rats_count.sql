@@ -1,4 +1,4 @@
-CREATE TRIGGER ratsCount AFTER INSERT ON medicoespassagens
+CREATE TRIGGER `RatsCount` AFTER INSERT ON `medicoespassagens`
  FOR EACH ROW BEGIN
 
 DECLARE expID, salaEntradaExiste, salaSaidaExiste INT;
@@ -25,6 +25,10 @@ ELSEIF salaSaidaExiste = 1 THEN
 ELSEIF salaEntradaExiste = 0 THEN
     INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
     VALUES (expID, 1, NEW.salaentrada);
+
+ELSEIF salaSaidaExiste = 0 THEN
+    INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
+    VALUES (expID, -1, NEW.salasaida);
 
 END IF;
 END
