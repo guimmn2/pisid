@@ -1,4 +1,5 @@
-BEGIN
+CREATE TRIGGER `CreateAlert` AFTER INSERT ON `medicoestemperatura`
+ FOR EACH ROW BEGIN
   DECLARE ongoing_exp_id INT;
   DECLARE temp_ideal DECIMAL(4,2);
   DECLARE var_max_temp DECIMAL(4,2);
