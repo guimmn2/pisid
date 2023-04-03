@@ -27,7 +27,7 @@ IF salaSaidaExiste = 1 THEN
     WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salasaida;
 ELSE
     INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
-    VALUES (expID, -1, NEW.salasaida);
+    VALUES (expID, 0, NEW.salasaida);
 END IF;
 
 END
