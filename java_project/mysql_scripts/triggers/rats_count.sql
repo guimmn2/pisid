@@ -14,21 +14,20 @@ WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salasaida;
 
 IF salaEntradaExiste = 1 THEN
     UPDATE medicoessala
-    SET medicoessala.numeroratosfinal = getRatsInRoom(NEW.salaentrada) + 1
+    SET medicoessala.numeroratosfinal = GetRatsInRoom(NEW.salaentrada) + 1
     WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salaentrada;
-
-ELSEIF salaSaidaExiste = 1 THEN
-    UPDATE medicoessala
-    SET medicoessala.numeroratosfinal = getRatsInRoom(NEW.salasaida) - 1
-    WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salasaida;
-
-ELSEIF salaEntradaExiste = 0 THEN
+ELSE
     INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
     VALUES (expID, 1, NEW.salaentrada);
-
-ELSEIF salaSaidaExiste = 0 THEN
-    INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
-    VALUES (expID, -1, NEW.salasaida);
-
 END IF;
+
+IF salaSaidaExiste = 1 THEN
+    UPDATE medicoessala
+    SET medicoessala.numeroratosfinal = GetRatsInRoom(NEW.salasaida) - 1
+    WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salasaida;
+ELSE
+    INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
+    VALUES (expID, 0, NEW.salasaida);
+END IF;
+
 END
