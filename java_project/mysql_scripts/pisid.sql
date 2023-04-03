@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 03, 2023 at 05:16 PM
+-- Generation Time: Apr 03, 2023 at 06:17 PM
 -- Server version: 10.3.38-MariaDB-0ubuntu0.20.04.1
 -- PHP Version: 7.4.3-4ubuntu2.18
 
@@ -26,6 +26,25 @@ DELIMITER $$
 --
 -- Procedures
 --
+CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `dataInicio` TIMESTAMP)  NO SQL
+BEGIN
+
+UPDATE experiencia
+SET DataHoraInicio = dataInicio
+-- proxima exp a decorrer
+WHERE id = (SELECT id FROM experiencia WHERE DataHoraInicio is NULL LIMIT 1);
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `TerminateOngoingExp` (IN `dataFim` TIMESTAMP)  NO SQL
+BEGIN
+
+UPDATE experiencia
+SET DataHoraFim = dataFim
+WHERE experiencia.id = GetOngoingExpId();
+
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteMov` (IN `hora` TIMESTAMP, IN `salaentrada` INT, IN `salasaida` INT)  NO SQL
 BEGIN
 IF OngoingExp() THEN
@@ -121,8 +140,9 @@ CREATE TABLE `experiencia` (
 
 INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, `DataHoraFim`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`, `idrazaofim`) VALUES
 (1, 'ww', NULL, '2023-03-17 21:34:58', '2023-03-17 21:35:04', 3, 3, 3, '22.00', '10.00', NULL),
-(2, 'ww', NULL, '2023-04-03 15:06:13', '2023-04-03 15:06:05', 3, 3, 3, '22.22', '10.22', NULL),
-(3, 'ww', NULL, NULL, NULL, 3, 3, 3, '22.22', '10.10', NULL);
+(2, 'ww', NULL, '2023-04-03 15:33:09', '2023-04-03 15:33:00', 3, 3, 3, '22.22', '10.22', NULL),
+(3, 'ww', NULL, '2023-04-03 16:05:22', NULL, 3, 3, 3, '22.22', '10.10', NULL),
+(4, '', NULL, NULL, NULL, 2, 4, 2, '12.00', '23.00', NULL);
 
 -- --------------------------------------------------------
 
@@ -136,6 +156,27 @@ CREATE TABLE `medicoespassagens` (
   `salaentrada` int(11) NOT NULL,
   `salasaida` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `medicoespassagens`
+--
+
+INSERT INTO `medicoespassagens` (`id`, `hora`, `salaentrada`, `salasaida`) VALUES
+(1, '2023-04-03 16:05:22', 0, 0);
+
+--
+-- Triggers `medicoespassagens`
+--
+DELIMITER $$
+CREATE TRIGGER `StartExp` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
+
+IF ((NEW.salaentrada + NEW.salasaida) = 0) THEN
+	CALL StartNextExp(NEW.hora);
+END IF;
+
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -196,6 +237,46 @@ INSERT INTO `medicoestemperatura` (`id`, `hora`, `leitura`, `sensor`) VALUES
 (27, '2023-03-31 17:57:29', '8.92', 1),
 (28, '2023-03-31 17:57:29', '3.82', 1),
 (29, '2023-03-31 17:57:29', '5.78', 1);
+
+--
+-- Triggers `medicoestemperatura`
+--
+DELIMITER $$
+CREATE TRIGGER `CreateAlert` AFTER INSERT ON `medicoestemperatura` FOR EACH ROW BEGIN
+  DECLARE ongoing_exp_id INT;
+  DECLARE temp_ideal DECIMAL(4,2);
+  DECLARE var_max_temp DECIMAL(4,2);
+
+  IF OngoingExp() THEN
+    SET ongoing_exp_id = GetOngoingExpId();
+
+    -- obter temp ideal
+    SELECT temperaturaideal INTO temp_ideal 
+    FROM experiencia 
+    WHERE id = ongoing_exp_id;
+
+    -- obter variação máxima da temperatura
+    SELECT variacaotemperaturamaxima INTO var_max_temp
+    FROM experiencia
+    WHERE id = ongoing_exp_id;
+
+    IF ((NEW.leitura) >  temp_ideal + var_max_temp) THEN
+      INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENTE', 'PLS STOP', CURRENT_TIMESTAMP());
+    ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp) THEN
+      INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENTE', 'PLS STOP', CURRENT_TIMESTAMP());
+    ELSEIF ((NEW.leitura) > temp_ideal + var_max_temp * 0.9) THEN
+      INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'epah yah', CURRENT_TIMESTAMP());
+    ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp * 0.9) THEN
+      INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'epah yah', CURRENT_TIMESTAMP());
+    END IF;
+  END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -329,13 +410,13 @@ ALTER TABLE `alerta`
 -- AUTO_INCREMENT for table `experiencia`
 --
 ALTER TABLE `experiencia`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `medicoespassagens`
 --
 ALTER TABLE `medicoespassagens`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `medicoestemperatura`
