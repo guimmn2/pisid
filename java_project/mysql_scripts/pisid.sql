@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 4.9.5deb2
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1
--- Generation Time: Mar 31, 2023 at 12:45 PM
--- Server version: 10.4.27-MariaDB
--- PHP Version: 8.2.0
+-- Host: localhost:3306
+-- Generation Time: Apr 03, 2023 at 05:16 PM
+-- Server version: 10.3.38-MariaDB-0ubuntu0.20.04.1
+-- PHP Version: 7.4.3-4ubuntu2.18
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -20,6 +21,62 @@ SET time_zone = "+00:00";
 --
 -- Database: `pisid`
 --
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteMov` (IN `hora` TIMESTAMP, IN `salaentrada` INT, IN `salasaida` INT)  NO SQL
+BEGIN
+IF OngoingExp() THEN
+	INSERT INTO medicoespassagens (datahora, salaentrada, salasaida)
+    VALUES (dataHora, salaentrada, salasaida);
+END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteTemp` (IN `sensor` INT, IN `hora` TIMESTAMP, IN `leitura` DECIMAL(4,2))  NO SQL
+BEGIN
+    IF OngoingExp() THEN
+        INSERT INTO medicoestemperatura (sensor, hora, leitura) VALUES (sensor, hora, leitura);
+    END IF;
+END$$
+
+--
+-- Functions
+--
+CREATE DEFINER=`root`@`localhost` FUNCTION `GetOngoingExpId` () RETURNS INT(11) NO SQL
+BEGIN
+	-- id da exp a decorrer
+    DECLARE ongoing_exp_id INT;
+    
+    SELECT id INTO ongoing_exp_id
+    FROM experiencia 
+    WHERE experiencia.DataHoraInicio IS NOT NULL 
+    AND experiencia.DataHoraFim IS NULL;
+    
+    IF ongoing_exp_id IS NULL THEN
+    RETURN -1;
+    ELSE
+    RETURN ongoing_exp_id;
+    END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `OngoingExp` () RETURNS TINYINT(1) NO SQL
+BEGIN-- id da exp a decorrer
+    DECLARE ongoing_exp_id INT;
+    SELECT id INTO ongoing_exp_id
+    FROM experiencia 
+    WHERE experiencia.datahorainicio IS NOT NULL 
+    AND experiencia.datahorafim IS NULL;
+    
+    IF ongoing_exp_id IS NULL THEN
+    RETURN FALSE;
+    ELSE
+    RETURN TRUE;
+    END IF;
+END$$
+
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -54,17 +111,18 @@ CREATE TABLE `experiencia` (
   `limiteratossala` int(11) NOT NULL,
   `segundossemmovimento` int(11) NOT NULL,
   `temperaturaideal` decimal(4,2) NOT NULL,
-  `variacaotemperaturamaxima` decimal(4,2) NOT NULL
+  `variacaotemperaturamaxima` decimal(4,2) NOT NULL,
+  `idrazaofim` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `experiencia`
 --
 
-INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, `DataHoraFim`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`) VALUES
-(1, 'ww', NULL, '2023-03-17 21:34:58', '2023-03-17 21:35:04', 3, 3, 3, '22.00', '10.00'),
-(2, 'ww', NULL, '2023-03-17 21:40:25', NULL, 3, 3, 3, '22.22', '10.22'),
-(3, 'ww', NULL, NULL, NULL, 3, 3, 3, '22.22', '10.10');
+INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, `DataHoraFim`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`, `idrazaofim`) VALUES
+(1, 'ww', NULL, '2023-03-17 21:34:58', '2023-03-17 21:35:04', 3, 3, 3, '22.00', '10.00', NULL),
+(2, 'ww', NULL, '2023-04-03 15:06:13', '2023-04-03 15:06:05', 3, 3, 3, '22.22', '10.22', NULL),
+(3, 'ww', NULL, NULL, NULL, 3, 3, 3, '22.22', '10.10', NULL);
 
 -- --------------------------------------------------------
 
@@ -99,10 +157,45 @@ CREATE TABLE `medicoessala` (
 
 CREATE TABLE `medicoestemperatura` (
   `id` int(11) NOT NULL,
-  `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `hora` timestamp NOT NULL DEFAULT current_timestamp(),
   `leitura` decimal(4,2) NOT NULL,
   `sensor` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `medicoestemperatura`
+--
+
+INSERT INTO `medicoestemperatura` (`id`, `hora`, `leitura`, `sensor`) VALUES
+(1, '2023-03-31 17:57:23', '3.82', 1),
+(2, '2023-03-31 17:57:23', '8.69', 1),
+(3, '2023-03-31 17:57:24', '5.17', 1),
+(4, '2023-03-31 17:57:24', '0.19', 1),
+(5, '2023-03-31 17:57:25', '3.05', 1),
+(6, '2023-03-31 17:57:25', '14.40', 1),
+(7, '2023-03-31 17:57:25', '11.88', 1),
+(8, '2023-03-31 17:57:25', '13.54', 1),
+(9, '2023-03-31 17:57:25', '7.92', 1),
+(10, '2023-03-31 17:57:25', '0.98', 1),
+(11, '2023-03-31 17:57:26', '8.58', 1),
+(12, '2023-03-31 17:57:26', '3.80', 1),
+(13, '2023-03-31 17:57:26', '9.50', 1),
+(14, '2023-03-31 17:57:26', '8.54', 1),
+(15, '2023-03-31 17:57:26', '7.86', 1),
+(16, '2023-03-31 17:57:27', '0.36', 1),
+(17, '2023-03-31 17:57:27', '2.58', 1),
+(18, '2023-03-31 17:57:27', '6.67', 1),
+(19, '2023-03-31 17:57:27', '13.28', 1),
+(20, '2023-03-31 17:57:27', '6.57', 1),
+(21, '2023-03-31 17:57:27', '8.22', 1),
+(22, '2023-03-31 17:57:27', '13.67', 1),
+(23, '2023-03-31 17:57:28', '0.89', 1),
+(24, '2023-03-31 17:57:28', '9.51', 1),
+(25, '2023-03-31 17:57:28', '11.10', 1),
+(26, '2023-03-31 17:57:28', '14.70', 1),
+(27, '2023-03-31 17:57:29', '8.92', 1),
+(28, '2023-03-31 17:57:29', '3.82', 1),
+(29, '2023-03-31 17:57:29', '5.78', 1);
 
 -- --------------------------------------------------------
 
@@ -115,6 +208,17 @@ CREATE TABLE `odoresexperiencia` (
   `idexperiencia` int(11) NOT NULL,
   `codigoodor` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `razaofim`
+--
+
+CREATE TABLE `razaofim` (
+  `id` int(11) NOT NULL,
+  `descricao` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -164,7 +268,8 @@ ALTER TABLE `alerta`
 --
 ALTER TABLE `experiencia`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `investigador` (`investigador`);
+  ADD KEY `investigador` (`investigador`),
+  ADD KEY `idrazaofim` (`idrazaofim`);
 
 --
 -- Indexes for table `medicoespassagens`
@@ -190,6 +295,12 @@ ALTER TABLE `medicoestemperatura`
 ALTER TABLE `odoresexperiencia`
   ADD PRIMARY KEY (`sala`,`idexperiencia`),
   ADD KEY `idexperiencia` (`idexperiencia`);
+
+--
+-- Indexes for table `razaofim`
+--
+ALTER TABLE `razaofim`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `substanciasexperiencia`
@@ -230,7 +341,7 @@ ALTER TABLE `medicoespassagens`
 -- AUTO_INCREMENT for table `medicoestemperatura`
 --
 ALTER TABLE `medicoestemperatura`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- Constraints for dumped tables
@@ -240,7 +351,8 @@ ALTER TABLE `medicoestemperatura`
 -- Constraints for table `experiencia`
 --
 ALTER TABLE `experiencia`
-  ADD CONSTRAINT `experiencia_ibfk_1` FOREIGN KEY (`investigador`) REFERENCES `utilizador` (`email`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `experiencia_ibfk_1` FOREIGN KEY (`investigador`) REFERENCES `utilizador` (`email`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `experiencia_ibfk_2` FOREIGN KEY (`idrazaofim`) REFERENCES `razaofim` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `medicoessala`
