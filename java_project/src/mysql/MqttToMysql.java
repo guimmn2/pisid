@@ -1,6 +1,5 @@
 package mysql;
 
-
 import java.io.FileInputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -36,11 +35,11 @@ public class MqttToMysql {
 	private static final int N_TABLES_TO_WRITE = 3;
 	private static final int MQTT_MESSAGE_QUEUE_SIZE = 1000;
 
-
 	public static void main(String[] args) throws Exception {
-		
+
 		// Set up connection to remote mysql server
-		Connection cloudConn = DriverManager.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno");
+		Connection cloudConn = DriverManager.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno",
+				"aluno");
 		// --
 
 		Properties p = new Properties();
@@ -123,16 +122,16 @@ public class MqttToMysql {
 
 						String message = temperatureQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-						
-                        String time = objMSG.get("Hora").getAsString();
-                        double reading = objMSG.get("Leitura").getAsDouble();
-                        int sensor = objMSG.get("Sensor").getAsInt();
+
+						String time = objMSG.get("Hora").getAsString();
+						double reading = objMSG.get("Leitura").getAsDouble();
+						int sensor = objMSG.get("Sensor").getAsInt();
 
 						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
 						cs.setInt(1, sensor);
 						cs.setTimestamp(2, Timestamp.valueOf(time));
 						cs.setDouble(3, reading);
-						
+
 						cs.executeUpdate();
 					}
 				} catch (InterruptedException | SQLException e) {
@@ -151,37 +150,41 @@ public class MqttToMysql {
 					while (true) {
 						String message = movementQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-						
-                        String time = objMSG.get("Hora").getAsString();
-                        int entry = objMSG.get("SalaEntrada").getAsInt();
-                        int exit = objMSG.get("SalaSaida").getAsInt();
-                        
-                        //ao receber 0-0 faz query à db remota para obter info de salas
-                        if (entry == 0 && exit == 0) {
-                        	System.out.println("connecting to remote db to fetch room data");
-                        	PreparedStatement stmnt = cloudConn.prepareStatement("select salaentrada, salasaida from corredor");
-                        	ResultSet rs = stmnt.executeQuery();
-                        	ArrayList<Pair> roomPairs = Utils.resultSetToList(rs);
-                        	roomPairs.forEach(p -> System.out.println(p.toString()));
-                        }
-                        
-                        //valida salas antes de chamar sp
 
-						CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
-						cs.setTimestamp(1, Timestamp.valueOf(time));
-						cs.setInt(2, entry);
-						cs.setInt(3, exit);
-						
-						//cs.executeUpdate();
+						String time = objMSG.get("Hora").getAsString();
+						int entry = objMSG.get("SalaEntrada").getAsInt();
+						int exit = objMSG.get("SalaSaida").getAsInt();
+
+						ArrayList<Pair> roomPairs = new ArrayList<>();
+						// ao receber 0-0 faz query à db remota para obter info de salas
+						if (entry == 0 && exit == 0) {
+							System.out.println("connecting to remote db to fetch room data on conn: " + cloudConn.hashCode());
+							PreparedStatement stmnt = cloudConn
+									.prepareStatement("select salaentrada, salasaida from corredor");
+							ResultSet rs = stmnt.executeQuery();
+							roomPairs = Utils.resultSetToList(rs);
+						}
+
+						// valida salas antes de chamar sp
+						if (Utils.existsPair(new Pair(entry, exit), roomPairs)) {
+							System.out.println("calling sp on conn: " + conn.hashCode());
+							CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
+							cs.setTimestamp(1, Timestamp.valueOf(time));
+							cs.setInt(2, entry);
+							cs.setInt(3, exit);
+							cs.executeUpdate();
+							cs.close();
+						}
+
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} 
+				}
 			}
 		}).start();
 
-		//TODO
+		// TODO
 		// alerts thread
 		new Thread(new Runnable() {
 
