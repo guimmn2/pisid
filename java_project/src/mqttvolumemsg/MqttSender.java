@@ -28,18 +28,18 @@ public class MqttSender implements MqttCallback {
 			System.out.println("Error reading SendCloud.ini file " + e);
 		}
 	}
-	
+
 	public void connectToMqtt() {
 		try {
-            mqttclient = new MqttClient(cloud_server, "SimulateSensor"+cloud_topics);
-            mqttclient.connect();
-            mqttclient.setCallback(this);
-            mqttclient.subscribe(cloud_topics);
-        } catch (MqttException e) {
-            e.printStackTrace();
-        }
+			mqttclient = new MqttClient(cloud_server, "SimulateSensor" + cloud_topics);
+			mqttclient.connect();
+			mqttclient.setCallback(this);
+			mqttclient.subscribe(cloud_topics);
+		} catch (MqttException e) {
+			e.printStackTrace();
+		}
 	}
-	
+
 	public static void fakeMessage(String message, String topic) throws MqttPersistenceException, MqttException {
 		MqttMessage mqtt_message = new MqttMessage();
 		mqtt_message.setPayload(message.getBytes());
@@ -49,29 +49,31 @@ public class MqttSender implements MqttCallback {
 	public static void main(String[] args) throws MqttPersistenceException, MqttException {
 		MqttSender mongoSender = new MqttSender();
 		mongoSender.connectToMqtt();
-		for(int i = 0; i < 10000; i++) {
-			
+		for (int i = 0; i < 10000; i++) {
+
 			LocalDateTime currentDateTime = LocalDateTime.now();
 
-		    // Define a formatter for the timestamp string
-		    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+			// Define a formatter for the timestamp string
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-		    // Format the timestamp as a string
-		    String timestampString = currentDateTime.format(formatter);
-		    
-		    double temperature = Math.random() * 15;
-		    
+			// Format the timestamp as a string
+			String timestampString = currentDateTime.format(formatter);
+
+			double temperature = Math.random() * 15;
+
 			String mov = "{Hora: \"" + timestampString + "\", SalaEntrada:1, SalaSaida:3}";
 			String temp = "{Sensor: 1, Hora: \"" + timestampString + "\", Leitura: \"" + temperature + "\"}";
 
 			double random = Math.random();
-			if(random < 0.33) {
+			if (random < 0.33) {
 				fakeMessage(mov, "readings/mov");
-				System.out.println("mov");
-			}
-			else {
+			} else if (random >= 0.33 && random < 0.66) {
 				fakeMessage(temp, "readings/temp");
-				System.out.println("temp");
+			} else {
+				String message = "{Hora: \"" + timestampString + "\", SalaEntrada:0, SalaSaida:0}";
+				MqttMessage mqtt_message = new MqttMessage();
+				mqtt_message.setPayload(message.getBytes());
+				mqttclient.publish("readings/mov", mqtt_message);
 			}
 		}
 	}

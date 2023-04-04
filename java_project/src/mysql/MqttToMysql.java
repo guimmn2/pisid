@@ -1,17 +1,18 @@
 package mysql;
 
+
 import java.io.FileInputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -22,6 +23,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+
+import mysql.Utils.Pair;
 
 public class MqttToMysql {
 
@@ -35,41 +38,31 @@ public class MqttToMysql {
 
 
 	public static void main(String[] args) throws Exception {
+		
+		// Set up connection to remote mysql server
+		Connection cloudConn = DriverManager.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno");
+		// --
+
 		Properties p = new Properties();
 
 		// get MQTT configs from .ini file
 		p.load(new FileInputStream("config_files/ReceiveCloud.ini"));
 		mqttBroker = p.getProperty("cloud_server");
 		mqttTopics = p.getProperty("cloud_topic").split(",");
+		// --
 
 		// Set up MQTT client
 		MqttClient client = new MqttClient(mqttBroker, MqttClient.generateClientId());
 		client.connect();
 		client.subscribe(mqttTopics);
+		// --
 
 		// get SQL configs from .ini file
 		p.load(new FileInputStream("config_files/WriteMysql.ini"));
 		dbUrl = p.getProperty("sql_database_connection_to");
 		dbPassword = p.getProperty("sql_database_password_to");
-		System.out.println("password is: " + dbPassword);
 		dbUser = p.getProperty("sql_database_user_to");
-
-		// launch thread to connect to cloud MySQL db to fetch rooms and rats info
-		new Thread(new Runnable() {
-			
-			@Override
-			public void run() {
-				try {
-					Connection cloudMysql = DriverManager.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze",
-							"aluno", "aluno");
-					while (true) {
-						//fica em espera até receber 0-0 e depois volta a dormir
-					}
-				} catch (SQLException e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
+		// --
 
 		// Set up HikariCP connection pool
 		HikariConfig config = new HikariConfig();
@@ -79,12 +72,13 @@ public class MqttToMysql {
 		config.setPassword(dbPassword);
 		config.setMaximumPoolSize(N_TABLES_TO_WRITE);
 		HikariDataSource dataSource = new HikariDataSource(config);
+		// --
 
 		// Set up message queues for each topic
-
 		BlockingQueue<String> temperatureQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
 		BlockingQueue<String> movementQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
 		BlockingQueue<String> alertsQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
+		// --
 
 		// Set up message listener
 		client.setCallback(new MqttCallback() {
@@ -98,17 +92,14 @@ public class MqttToMysql {
 
 				switch (topic) {
 				case "readings/temp": {
-					// System.out.println("temp message: " + message);
 					temperatureQueue.put(message);
 					break;
 				}
 				case "readings/mov": {
-					// System.out.println("mov message: " + message);
 					movementQueue.put(message);
 					break;
 				}
 				case "lightWarnings": {
-					// System.out.println("alert message: " + message);
 					alertsQueue.put(message);
 					break;
 				}
@@ -143,7 +134,6 @@ public class MqttToMysql {
 						cs.setDouble(3, reading);
 						
 						cs.executeUpdate();
-						System.out.println("temperature thread: " + message);
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
@@ -166,12 +156,23 @@ public class MqttToMysql {
                         int entry = objMSG.get("SalaEntrada").getAsInt();
                         int exit = objMSG.get("SalaSaida").getAsInt();
                         
+                        //ao receber 0-0 faz query à db remota para obter info de salas
+                        if (entry == 0 && exit == 0) {
+                        	System.out.println("connecting to remote db to fetch room data");
+                        	PreparedStatement stmnt = cloudConn.prepareStatement("select salaentrada, salasaida from corredor");
+                        	ResultSet rs = stmnt.executeQuery();
+                        	ArrayList<Pair> roomPairs = Utils.resultSetToList(rs);
+                        	roomPairs.forEach(p -> System.out.println(p.toString()));
+                        }
+                        
+                        //valida salas antes de chamar sp
+
 						CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
 						cs.setTimestamp(1, Timestamp.valueOf(time));
 						cs.setInt(2, entry);
 						cs.setInt(3, exit);
 						
-						cs.executeUpdate();
+						//cs.executeUpdate();
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
@@ -180,6 +181,7 @@ public class MqttToMysql {
 			}
 		}).start();
 
+		//TODO
 		// alerts thread
 		new Thread(new Runnable() {
 
@@ -190,7 +192,6 @@ public class MqttToMysql {
 						String message = alertsQueue.take();
 						// PreparedStatement stmnt = conn.prepareStatement("insert into
 						// mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
-						System.out.println("alerts thread: " + message);
 					} catch (InterruptedException | SQLException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
