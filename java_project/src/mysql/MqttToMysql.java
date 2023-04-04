@@ -131,19 +131,19 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = temperatureQueue.take();
-						/*
-						 * JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-						 * 
-						 * String hora = objMSG.get("Hora").getAsString(); double leitura =
-						 * objMSG.get("Leitura").getAsDouble(); int sensor =
-						 * objMSG.get("Sensor").getAsInt();
-						 * 
-						 * CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
-						 * cs.setInt(1, sensor); cs.setTimestamp(2, Timestamp.valueOf(hora));
-						 * cs.setDouble(3, leitura);
-						 * 
-						 * cs.executeUpdate(); System.out.println("temperature thread: " + message);
-						 */
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+						
+                        String time = objMSG.get("Hora").getAsString();
+                        double reading = objMSG.get("Leitura").getAsDouble();
+                        int sensor = objMSG.get("Sensor").getAsInt();
+
+						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
+						cs.setInt(1, sensor);
+						cs.setTimestamp(2, Timestamp.valueOf(time));
+						cs.setDouble(3, reading);
+						
+						cs.executeUpdate();
+						System.out.println("temperature thread: " + message);
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
@@ -160,9 +160,18 @@ public class MqttToMysql {
 				try (Connection conn = dataSource.getConnection()) {
 					while (true) {
 						String message = movementQueue.take();
-						// if entrada e saida forem 0
-						System.out.println(message);
-						lock.notify();
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+						
+                        String time = objMSG.get("Hora").getAsString();
+                        int entry = objMSG.get("SalaEntrada").getAsInt();
+                        int exit = objMSG.get("SalaSaida").getAsInt();
+                        
+						CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
+						cs.setTimestamp(1, Timestamp.valueOf(time));
+						cs.setInt(2, entry);
+						cs.setInt(3, exit);
+						
+						cs.executeUpdate();
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block

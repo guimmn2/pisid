@@ -3,8 +3,8 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteMov`(IN `hora` TIMESTAMP, IN `
     NO SQL
 BEGIN
 IF OngoingExp() THEN
-	INSERT INTO medicoespassagens (datahora, salaentrada, salasaida)
-    VALUES (dataHora, salaentrada, salasaida);
+	INSERT INTO medicoespassagens (hora, salaentrada, salasaida)
+    VALUES (hora, salaentrada, salasaida);
 END IF;
 END$$
 DELIMITER ;
