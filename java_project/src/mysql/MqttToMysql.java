@@ -3,13 +3,15 @@ package mysql;
 import java.io.FileInputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
@@ -31,6 +33,7 @@ public class MqttToMysql {
 	private static final int N_TABLES_TO_WRITE = 3;
 	private static final int MQTT_MESSAGE_QUEUE_SIZE = 1000;
 
+
 	public static void main(String[] args) throws Exception {
 		Properties p = new Properties();
 
@@ -50,6 +53,23 @@ public class MqttToMysql {
 		dbPassword = p.getProperty("sql_database_password_to");
 		System.out.println("password is: " + dbPassword);
 		dbUser = p.getProperty("sql_database_user_to");
+
+		// launch thread to connect to cloud MySQL db to fetch rooms and rats info
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					Connection cloudMysql = DriverManager.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze",
+							"aluno", "aluno");
+					while (true) {
+						//fica em espera até receber 0-0 e depois volta a dormir
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}).start();
 
 		// Set up HikariCP connection pool
 		HikariConfig config = new HikariConfig();
@@ -78,17 +98,17 @@ public class MqttToMysql {
 
 				switch (topic) {
 				case "readings/temp": {
-					System.out.println("temp message: " + message);
+					// System.out.println("temp message: " + message);
 					temperatureQueue.put(message);
 					break;
 				}
 				case "readings/mov": {
-					System.out.println("mov message: " + message);
+					// System.out.println("mov message: " + message);
 					movementQueue.put(message);
 					break;
 				}
 				case "lightWarnings": {
-					System.out.println("alert message: " + message);
+					// System.out.println("alert message: " + message);
 					alertsQueue.put(message);
 					break;
 				}
@@ -111,19 +131,19 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = temperatureQueue.take();
-						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-						
-                        String hora = objMSG.get("Hora").getAsString();
-                        double leitura = objMSG.get("Leitura").getAsDouble();
-                        int sensor = objMSG.get("Sensor").getAsInt();
-
-						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
-						cs.setInt(1, sensor);
-						cs.setTimestamp(2, Timestamp.valueOf(hora));
-						cs.setDouble(3, leitura);
-						
-						cs.executeUpdate();
-						System.out.println("temperature thread: " + message);
+						/*
+						 * JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+						 * 
+						 * String hora = objMSG.get("Hora").getAsString(); double leitura =
+						 * objMSG.get("Leitura").getAsDouble(); int sensor =
+						 * objMSG.get("Sensor").getAsInt();
+						 * 
+						 * CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
+						 * cs.setInt(1, sensor); cs.setTimestamp(2, Timestamp.valueOf(hora));
+						 * cs.setDouble(3, leitura);
+						 * 
+						 * cs.executeUpdate(); System.out.println("temperature thread: " + message);
+						 */
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
@@ -140,11 +160,14 @@ public class MqttToMysql {
 				try (Connection conn = dataSource.getConnection()) {
 					while (true) {
 						String message = movementQueue.take();
+						// if entrada e saida forem 0
+						System.out.println(message);
+						lock.notify();
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				}
+				} 
 			}
 		}).start();
 
