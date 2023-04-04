@@ -65,8 +65,14 @@ public class MqttSender implements MqttCallback {
 			String temp = "{Sensor: 1, Hora: \"" + timestampString + "\", Leitura: \"" + temperature + "\"}";
 
 			double random = Math.random();
-			if(random < 0.33) fakeMessage(mov, "readings/mov");
-			else fakeMessage(temp, "readings/temp");
+			if(random < 0.33) {
+				fakeMessage(mov, "readings/mov");
+				System.out.println("mov");
+			}
+			else {
+				fakeMessage(temp, "readings/temp");
+				System.out.println("temp");
+			}
 		}
 	}
 
