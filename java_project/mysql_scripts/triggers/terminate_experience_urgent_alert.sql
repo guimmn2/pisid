@@ -1,8 +1,8 @@
-CREATE TRIGGER `TerminateExperience` AFTER INSERT ON `alerta`
+CREATE TRIGGER `TerminateExpUrgentAlert` AFTER INSERT ON `alerta`
  FOR EACH ROW BEGIN
 
 IF NEW.tipo = 'urgent' THEN
-	CALL TerminateOngoingExp(CURRENT_TIMESTAMP);
+	CALL TerminateOngoingExp(NEW.hora);
 END IF;
 
 END
