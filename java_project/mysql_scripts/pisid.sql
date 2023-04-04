@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 03, 2023 at 06:17 PM
+-- Generation Time: Apr 04, 2023 at 02:33 PM
 -- Server version: 10.3.38-MariaDB-0ubuntu0.20.04.1
 -- PHP Version: 7.4.3-4ubuntu2.18
 
@@ -48,8 +48,8 @@ END$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteMov` (IN `hora` TIMESTAMP, IN `salaentrada` INT, IN `salasaida` INT)  NO SQL
 BEGIN
 IF OngoingExp() THEN
-	INSERT INTO medicoespassagens (datahora, salaentrada, salasaida)
-    VALUES (dataHora, salaentrada, salasaida);
+	INSERT INTO medicoespassagens (hora, salaentrada, salasaida)
+    VALUES (hora, salaentrada, salasaida);
 END IF;
 END$$
 
@@ -80,6 +80,19 @@ BEGIN
     END IF;
 END$$
 
+CREATE DEFINER=`root`@`localhost` FUNCTION `GetRatsInRoom` (`nrSala` INT) RETURNS INT(11) NO SQL
+BEGIN
+
+DECLARE nr_ratos INT;
+
+SELECT numeroratosfinal INTO nr_ratos 
+FROM medicoessala
+WHERE medicoessala.sala = nrSala AND medicoessala.idexperiencia = GetOngoingExpId();
+
+RETURN nr_ratos;
+
+END$$
+
 CREATE DEFINER=`root`@`localhost` FUNCTION `OngoingExp` () RETURNS TINYINT(1) NO SQL
 BEGIN-- id da exp a decorrer
     DECLARE ongoing_exp_id INT;
@@ -106,13 +119,47 @@ DELIMITER ;
 CREATE TABLE `alerta` (
   `id` int(11) NOT NULL,
   `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `sala` int(11) NOT NULL,
-  `sensor` int(11) NOT NULL,
+  `sala` int(11) DEFAULT NULL,
+  `sensor` int(11) DEFAULT NULL,
   `leitura` decimal(4,2) NOT NULL,
   `tipo` varchar(20) NOT NULL DEFAULT 'light',
   `mensagem` varchar(100) NOT NULL,
   `horaescrita` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `alerta`
+--
+
+INSERT INTO `alerta` (`id`, `hora`, `sala`, `sensor`, `leitura`, `tipo`, `mensagem`, `horaescrita`) VALUES
+(1, '2023-04-04 12:27:59', NULL, 1, '7.59', 'URGENTE', 'PLS STOP', '2023-04-04 12:27:59'),
+(2, '2023-04-04 12:27:59', NULL, 1, '5.46', 'URGENTE', 'PLS STOP', '2023-04-04 12:27:59'),
+(3, '2023-04-04 12:27:59', NULL, 1, '1.13', 'URGENTE', 'PLS STOP', '2023-04-04 12:27:59'),
+(4, '2023-04-04 12:27:59', NULL, 1, '11.28', 'URGENTE', 'PLS STOP', '2023-04-04 12:27:59'),
+(5, '2023-04-04 12:27:59', NULL, 1, '11.61', 'URGENTE', 'PLS STOP', '2023-04-04 12:27:59'),
+(6, '2023-04-04 12:28:00', NULL, 1, '8.66', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:00'),
+(7, '2023-04-04 12:28:00', NULL, 1, '9.37', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:00'),
+(8, '2023-04-04 12:28:00', NULL, 1, '12.66', 'LIGHT', 'epah yah', '2023-04-04 12:28:00'),
+(9, '2023-04-04 12:28:00', NULL, 1, '7.55', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:01'),
+(10, '2023-04-04 12:28:01', NULL, 1, '0.45', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:01'),
+(11, '2023-04-04 12:28:01', NULL, 1, '2.41', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:01'),
+(12, '2023-04-04 12:28:01', NULL, 1, '2.10', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:01'),
+(13, '2023-04-04 12:28:01', NULL, 1, '6.39', 'URGENTE', 'PLS STOP', '2023-04-04 12:28:01'),
+(14, '2023-04-04 12:29:21', NULL, 1, '4.15', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:21'),
+(15, '2023-04-04 12:29:21', NULL, 1, '11.44', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:22'),
+(16, '2023-04-04 12:29:22', NULL, 1, '3.91', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:22'),
+(17, '2023-04-04 12:29:22', NULL, 1, '8.74', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:22'),
+(18, '2023-04-04 12:29:22', NULL, 1, '2.32', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:23'),
+(19, '2023-04-04 12:29:23', NULL, 1, '0.22', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:23'),
+(20, '2023-04-04 12:29:23', NULL, 1, '13.06', 'LIGHT', 'epah yah', '2023-04-04 12:29:23'),
+(21, '2023-04-04 12:29:23', NULL, 1, '12.86', 'LIGHT', 'epah yah', '2023-04-04 12:29:23'),
+(22, '2023-04-04 12:29:23', NULL, 1, '8.00', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:23'),
+(23, '2023-04-04 12:29:24', NULL, 1, '12.46', 'LIGHT', 'epah yah', '2023-04-04 12:29:24'),
+(24, '2023-04-04 12:29:24', NULL, 1, '7.67', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:24'),
+(25, '2023-04-04 12:29:24', NULL, 1, '10.04', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:24'),
+(26, '2023-04-04 12:29:24', NULL, 1, '4.51', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:24'),
+(27, '2023-04-04 12:29:24', NULL, 1, '8.47', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:25'),
+(28, '2023-04-04 12:29:25', NULL, 1, '6.56', 'URGENTE', 'PLS STOP', '2023-04-04 12:29:25');
 
 -- --------------------------------------------------------
 
@@ -162,11 +209,59 @@ CREATE TABLE `medicoespassagens` (
 --
 
 INSERT INTO `medicoespassagens` (`id`, `hora`, `salaentrada`, `salasaida`) VALUES
-(1, '2023-04-03 16:05:22', 0, 0);
+(1, '2023-04-03 16:05:22', 0, 0),
+(13, '2023-04-04 12:29:21', 1, 3),
+(14, '2023-04-04 12:29:21', 1, 3),
+(15, '2023-04-04 12:29:22', 1, 3),
+(16, '2023-04-04 12:29:22', 1, 3),
+(17, '2023-04-04 12:29:22', 1, 3),
+(18, '2023-04-04 12:29:22', 1, 3),
+(19, '2023-04-04 12:29:23', 1, 3),
+(20, '2023-04-04 12:29:23', 1, 3),
+(21, '2023-04-04 12:29:23', 1, 3),
+(22, '2023-04-04 12:29:24', 1, 3),
+(23, '2023-04-04 12:29:25', 1, 3),
+(24, '2023-04-04 12:29:25', 1, 3),
+(25, '2023-04-04 12:29:25', 1, 3);
 
 --
 -- Triggers `medicoespassagens`
 --
+DELIMITER $$
+CREATE TRIGGER `RatsCount` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
+
+DECLARE expID, salaEntradaExiste, salaSaidaExiste INT;
+SET expID = GetOngoingExpId();
+
+SELECT COUNT(1) into salaEntradaExiste
+FROM medicoessala
+WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salaentrada;
+
+SELECT COUNT(1) into salaSaidaExiste
+FROM medicoessala
+WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salasaida;
+
+IF salaEntradaExiste = 1 THEN
+    UPDATE medicoessala
+    SET medicoessala.numeroratosfinal = GetRatsInRoom(NEW.salaentrada) + 1
+    WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salaentrada;
+ELSE
+    INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
+    VALUES (expID, 1, NEW.salaentrada);
+END IF;
+
+IF salaSaidaExiste = 1 THEN
+    UPDATE medicoessala
+    SET medicoessala.numeroratosfinal = GetRatsInRoom(NEW.salasaida) - 1
+    WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salasaida;
+ELSE
+    INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
+    VALUES (expID, -1, NEW.salasaida);
+END IF;
+
+END
+$$
+DELIMITER ;
 DELIMITER $$
 CREATE TRIGGER `StartExp` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
 
@@ -202,41 +297,6 @@ CREATE TABLE `medicoestemperatura` (
   `leitura` decimal(4,2) NOT NULL,
   `sensor` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-
---
--- Dumping data for table `medicoestemperatura`
---
-
-INSERT INTO `medicoestemperatura` (`id`, `hora`, `leitura`, `sensor`) VALUES
-(1, '2023-03-31 17:57:23', '3.82', 1),
-(2, '2023-03-31 17:57:23', '8.69', 1),
-(3, '2023-03-31 17:57:24', '5.17', 1),
-(4, '2023-03-31 17:57:24', '0.19', 1),
-(5, '2023-03-31 17:57:25', '3.05', 1),
-(6, '2023-03-31 17:57:25', '14.40', 1),
-(7, '2023-03-31 17:57:25', '11.88', 1),
-(8, '2023-03-31 17:57:25', '13.54', 1),
-(9, '2023-03-31 17:57:25', '7.92', 1),
-(10, '2023-03-31 17:57:25', '0.98', 1),
-(11, '2023-03-31 17:57:26', '8.58', 1),
-(12, '2023-03-31 17:57:26', '3.80', 1),
-(13, '2023-03-31 17:57:26', '9.50', 1),
-(14, '2023-03-31 17:57:26', '8.54', 1),
-(15, '2023-03-31 17:57:26', '7.86', 1),
-(16, '2023-03-31 17:57:27', '0.36', 1),
-(17, '2023-03-31 17:57:27', '2.58', 1),
-(18, '2023-03-31 17:57:27', '6.67', 1),
-(19, '2023-03-31 17:57:27', '13.28', 1),
-(20, '2023-03-31 17:57:27', '6.57', 1),
-(21, '2023-03-31 17:57:27', '8.22', 1),
-(22, '2023-03-31 17:57:27', '13.67', 1),
-(23, '2023-03-31 17:57:28', '0.89', 1),
-(24, '2023-03-31 17:57:28', '9.51', 1),
-(25, '2023-03-31 17:57:28', '11.10', 1),
-(26, '2023-03-31 17:57:28', '14.70', 1),
-(27, '2023-03-31 17:57:29', '8.92', 1),
-(28, '2023-03-31 17:57:29', '3.82', 1),
-(29, '2023-03-31 17:57:29', '5.78', 1);
 
 --
 -- Triggers `medicoestemperatura`
@@ -404,7 +464,7 @@ ALTER TABLE `utilizador`
 -- AUTO_INCREMENT for table `alerta`
 --
 ALTER TABLE `alerta`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `experiencia`
@@ -416,13 +476,13 @@ ALTER TABLE `experiencia`
 -- AUTO_INCREMENT for table `medicoespassagens`
 --
 ALTER TABLE `medicoespassagens`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `medicoestemperatura`
 --
 ALTER TABLE `medicoestemperatura`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=68;
 
 --
 -- Constraints for dumped tables
