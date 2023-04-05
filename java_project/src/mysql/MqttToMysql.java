@@ -143,8 +143,9 @@ public class MqttToMysql {
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
 
-					ArrayList<ArrayList<Integer>> roomPairs = new ArrayList<ArrayList<Integer>>();
-
+					ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
+					ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
+					
 					while (true) {
 
 						String message = movementQueue.take();
@@ -154,9 +155,9 @@ public class MqttToMysql {
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
 
-						ArrayList<Integer> roomsFromMqtt = new ArrayList<>();
-						roomsFromMqtt.add(entry);
-						roomsFromMqtt.add(exit);
+						
+						roomPairFromMqtt.add(entry);
+						roomPairFromMqtt.add(exit);
 
 						// ao receber 0-0 faz query à db remota para obter info de salas
 						if (entry == 0 && exit == 0) {
@@ -170,23 +171,23 @@ public class MqttToMysql {
 								int columnCount = rsmd.getColumnCount();
 
 								// lista com todos os pares sala dos corredores
-								roomPairs = new ArrayList<ArrayList<Integer>>(columnCount);
+								roomPairsFromSql = new ArrayList<ArrayList<Integer>>(columnCount);
 								while (rs.next()) {
 									ArrayList<Integer> pair = new ArrayList<>();
 									pair.add(rs.getInt("salaentrada"));
 									pair.add(rs.getInt("salasaida"));
-									roomPairs.add(pair);
+									roomPairsFromSql.add(pair);
 								}
 								// debug
-								roomPairs.forEach(p -> System.out.println(p.toString()));
+								roomPairsFromSql.forEach(p -> System.out.println(p.toString()));
 
 							}
 
 						} else {
-							for (ArrayList<Integer> arr : roomPairs) {
+							for (ArrayList<Integer> arr : roomPairsFromSql) {
 								// valida salas antes de chamar sp
-								if (arr.containsAll(roomsFromMqtt)) {
-									System.out.println("Corredor existe: " + roomsFromMqtt);
+								if (arr.containsAll(roomPairFromMqtt)) {
+									System.out.println("Corredor existe: " + roomPairFromMqtt);
 									CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
 									cs.setTimestamp(1, Timestamp.valueOf(time));
 									cs.setInt(2, entry);
@@ -210,15 +211,27 @@ public class MqttToMysql {
 
 			@Override
 			public void run() {
-				while (true) {
-					try (Connection conn = dataSource.getConnection()) {
+				try (Connection conn = dataSource.getConnection()) {
+					while (true) {
+
 						String message = alertsQueue.take();
-						// PreparedStatement stmnt = conn.prepareStatement("insert into
-						// mediçõestemperature (Hora, Leitura, Sensor) values (?, ?, ?)");
-					} catch (InterruptedException | SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+						
+						String type = objMSG.get("Tipo").getAsString();
+						String time = objMSG.get("Hora").getAsString();
+						int sensor = objMSG.get("Sensor").getAsInt();
+						String description = objMSG.get("Mensagem").getAsString();
+
+						CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?)}");
+						cs.setInt(1, sensor);
+						cs.setTimestamp(2, Timestamp.valueOf(time));
+						cs.setDouble(3, reading);
+
+						cs.executeUpdate();
 					}
+				} catch (InterruptedException | SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 		}).start();

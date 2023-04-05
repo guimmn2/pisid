@@ -62,18 +62,19 @@ public class MqttSender implements MqttCallback {
 			double temperature = Math.random() * 15;
 
 			String mov = "{Hora: \"" + timestampString + "\", SalaEntrada:5, SalaSaida:2}";
+
 			String temp = "{Sensor: 1, Hora: \"" + timestampString + "\", Leitura: \"" + temperature + "\"}";
 
 			double random = Math.random();
 			if (random < 0.33) {
 				fakeMessage(mov, "readings/mov");
 			} else if (random >= 0.33 && random < 0.66) {
-				fakeMessage(temp, "readings/temp");
-			} else {
-				String message = "{Hora: \"" + timestampString + "\", SalaEntrada:0, SalaSaida:0}";
+				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
+			} else {
+				fakeMessage(temp, "readings/temp");
 			}
 		}
 	}
