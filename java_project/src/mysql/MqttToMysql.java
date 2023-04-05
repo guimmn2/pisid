@@ -1,15 +1,16 @@
 package mysql;
 
-
 import java.io.FileInputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -24,8 +25,6 @@ import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-import mysql.Utils.Pair;
-
 public class MqttToMysql {
 
 	private static String mqttBroker;
@@ -36,12 +35,7 @@ public class MqttToMysql {
 	private static final int N_TABLES_TO_WRITE = 3;
 	private static final int MQTT_MESSAGE_QUEUE_SIZE = 1000;
 
-
 	public static void main(String[] args) throws Exception {
-		
-		// Set up connection to remote mysql server
-		Connection cloudConn = DriverManager.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno");
-		// --
 
 		Properties p = new Properties();
 
@@ -123,16 +117,16 @@ public class MqttToMysql {
 
 						String message = temperatureQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-						
-                        String time = objMSG.get("Hora").getAsString();
-                        double reading = objMSG.get("Leitura").getAsDouble();
-                        int sensor = objMSG.get("Sensor").getAsInt();
+
+						String time = objMSG.get("Hora").getAsString();
+						double reading = objMSG.get("Leitura").getAsDouble();
+						int sensor = objMSG.get("Sensor").getAsInt();
 
 						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
 						cs.setInt(1, sensor);
 						cs.setTimestamp(2, Timestamp.valueOf(time));
 						cs.setDouble(3, reading);
-						
+
 						cs.executeUpdate();
 					}
 				} catch (InterruptedException | SQLException e) {
@@ -148,40 +142,69 @@ public class MqttToMysql {
 			@Override
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
+
+					ArrayList<ArrayList<Integer>> roomPairs = new ArrayList<ArrayList<Integer>>();
+
 					while (true) {
+
 						String message = movementQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-						
-                        String time = objMSG.get("Hora").getAsString();
-                        int entry = objMSG.get("SalaEntrada").getAsInt();
-                        int exit = objMSG.get("SalaSaida").getAsInt();
-                        
-                        //ao receber 0-0 faz query à db remota para obter info de salas
-                        if (entry == 0 && exit == 0) {
-                        	System.out.println("connecting to remote db to fetch room data");
-                        	PreparedStatement stmnt = cloudConn.prepareStatement("select salaentrada, salasaida from corredor");
-                        	ResultSet rs = stmnt.executeQuery();
-                        	ArrayList<Pair> roomPairs = Utils.resultSetToList(rs);
-                        	roomPairs.forEach(p -> System.out.println(p.toString()));
-                        }
-                        
-                        //valida salas antes de chamar sp
 
-						CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
-						cs.setTimestamp(1, Timestamp.valueOf(time));
-						cs.setInt(2, entry);
-						cs.setInt(3, exit);
-						
-						//cs.executeUpdate();
+						String time = objMSG.get("Hora").getAsString();
+						int entry = objMSG.get("SalaEntrada").getAsInt();
+						int exit = objMSG.get("SalaSaida").getAsInt();
+
+						ArrayList<Integer> roomsFromMqtt = new ArrayList<>();
+						roomsFromMqtt.add(entry);
+						roomsFromMqtt.add(exit);
+
+						// ao receber 0-0 faz query à db remota para obter info de salas
+						if (entry == 0 && exit == 0) {
+							try (Connection cloudConn = DriverManager
+									.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno")) {
+								System.out.println("connecting to remote db to fetch room data");
+								PreparedStatement stmnt = cloudConn
+										.prepareStatement("select salaentrada, salasaida from corredor");
+								ResultSet rs = stmnt.executeQuery();
+								ResultSetMetaData rsmd = rs.getMetaData();
+								int columnCount = rsmd.getColumnCount();
+
+								// lista com todos os pares sala dos corredores
+								roomPairs = new ArrayList<ArrayList<Integer>>(columnCount);
+								while (rs.next()) {
+									ArrayList<Integer> pair = new ArrayList<>();
+									pair.add(rs.getInt("salaentrada"));
+									pair.add(rs.getInt("salasaida"));
+									roomPairs.add(pair);
+								}
+								// debug
+								roomPairs.forEach(p -> System.out.println(p.toString()));
+
+							}
+
+						} else {
+							for (ArrayList<Integer> arr : roomPairs) {
+								// valida salas antes de chamar sp
+								if (arr.containsAll(roomsFromMqtt)) {
+									System.out.println("Corredor existe: " + roomsFromMqtt);
+									CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
+									cs.setTimestamp(1, Timestamp.valueOf(time));
+									cs.setInt(2, entry);
+									cs.setInt(3, exit);
+									cs.executeUpdate();
+								}
+							}
+						}
+
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-				} 
+				}
 			}
 		}).start();
 
-		//TODO
+		// TODO
 		// alerts thread
 		new Thread(new Runnable() {
 
