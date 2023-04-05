@@ -215,19 +215,9 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = alertsQueue.take();
-						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 						
-						String type = objMSG.get("Tipo").getAsString();
-						String time = objMSG.get("Hora").getAsString();
-						int sensor = objMSG.get("Sensor").getAsInt();
-						String description = objMSG.get("Mensagem").getAsString();
-
-						CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?)}");
-						cs.setInt(1, sensor);
-						cs.setTimestamp(2, Timestamp.valueOf(time));
-						cs.setDouble(3, reading);
-
-						cs.executeUpdate();
+						
+					
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block
