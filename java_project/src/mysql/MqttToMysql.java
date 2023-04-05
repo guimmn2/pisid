@@ -83,8 +83,6 @@ public class MqttToMysql {
 
 			public void messageArrived(String topic, MqttMessage mqttMessage) throws InterruptedException {
 				String message = new String(mqttMessage.getPayload());
-				System.out.println(message);
-				
 				switch (topic) {
 				case "readings/temp": {
 					temperatureQueue.put(message);
@@ -92,7 +90,6 @@ public class MqttToMysql {
 				}
 				case "readings/mov": {
 					movementQueue.put(message);
-					
 					break;
 				}
 				case "lightWarnings": {
@@ -144,24 +141,28 @@ public class MqttToMysql {
 			@Override
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
-
+					
+					ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
 					
 
 					while (true) {
 						
-						ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
 						ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
-
+						
 						String message = movementQueue.take();
-						System.out.println(message);
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
 						String time = objMSG.get("Hora").getAsString();
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
+						
+						
+						System.out.println("roomPairsFromSql: " + roomPairsFromSql);
 
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
+						
+						System.out.println("roomPairFromMqtt: " + roomPairFromMqtt);
 
 						// ao receber 0-0 faz query à db remota para obter info de salas
 						if (entry == 0 && exit == 0) {
@@ -190,13 +191,14 @@ public class MqttToMysql {
 						}
 						for (ArrayList<Integer> arr : roomPairsFromSql) {
 							// valida salas antes de chamar sp
-							if (arr.containsAll(roomPairFromMqtt) || entry == 0 & exit == 0) {
+							if (arr.containsAll(roomPairFromMqtt) || exit == 0 & entry == 0) {
 								System.out.println("Corredor existe: " + roomPairFromMqtt);
 								CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(2, entry);
 								cs.setInt(3, exit);
-								cs.executeUpdate();
+								//cs.executeUpdate();
+								break;
 							}
 
 						}
@@ -228,9 +230,5 @@ public class MqttToMysql {
 			}
 		}).start();
 
-		// Wait for messages
-		while (true) {
-			Thread.sleep(1000);
-		}
 	}
 }
