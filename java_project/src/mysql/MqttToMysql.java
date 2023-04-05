@@ -83,7 +83,8 @@ public class MqttToMysql {
 
 			public void messageArrived(String topic, MqttMessage mqttMessage) throws InterruptedException {
 				String message = new String(mqttMessage.getPayload());
-
+				System.out.println(message);
+				
 				switch (topic) {
 				case "readings/temp": {
 					temperatureQueue.put(message);
@@ -91,6 +92,7 @@ public class MqttToMysql {
 				}
 				case "readings/mov": {
 					movementQueue.put(message);
+					
 					break;
 				}
 				case "lightWarnings": {
@@ -143,19 +145,21 @@ public class MqttToMysql {
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
 
-					ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
-					ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
 					
+
 					while (true) {
+						
+						ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
+						ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
 
 						String message = movementQueue.take();
+						System.out.println(message);
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
 						String time = objMSG.get("Hora").getAsString();
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
 
-						
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
 
@@ -183,18 +187,18 @@ public class MqttToMysql {
 
 							}
 
-						} else {
-							for (ArrayList<Integer> arr : roomPairsFromSql) {
-								// valida salas antes de chamar sp
-								if (arr.containsAll(roomPairFromMqtt)) {
-									System.out.println("Corredor existe: " + roomPairFromMqtt);
-									CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
-									cs.setTimestamp(1, Timestamp.valueOf(time));
-									cs.setInt(2, entry);
-									cs.setInt(3, exit);
-									cs.executeUpdate();
-								}
+						}
+						for (ArrayList<Integer> arr : roomPairsFromSql) {
+							// valida salas antes de chamar sp
+							if (arr.containsAll(roomPairFromMqtt) || entry == 0 & exit == 0) {
+								System.out.println("Corredor existe: " + roomPairFromMqtt);
+								CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
+								cs.setTimestamp(1, Timestamp.valueOf(time));
+								cs.setInt(2, entry);
+								cs.setInt(3, exit);
+								cs.executeUpdate();
 							}
+
 						}
 
 					}
@@ -215,9 +219,7 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = alertsQueue.take();
-						
-						
-					
+
 					}
 				} catch (InterruptedException | SQLException e) {
 					// TODO Auto-generated catch block

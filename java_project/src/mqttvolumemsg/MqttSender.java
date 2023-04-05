@@ -69,7 +69,7 @@ public class MqttSender implements MqttCallback {
 			if (random < 0.33) {
 				fakeMessage(mov, "readings/mov");
 			} else if (random >= 0.33 && random < 0.66) {
-				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
+				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 5, SalaSaida: 2}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
