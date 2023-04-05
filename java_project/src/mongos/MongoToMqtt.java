@@ -93,7 +93,7 @@ public class MongoToMqtt implements MqttCallback {
 	        System.out.println("Second ago -> " + oneSS);
 	        MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(query).iterator();
 	        MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(query).iterator();
-	        MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(query).iterator();
+	        MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find().iterator();
 	      
 	        //send temps
 	        while (cursor.hasNext()) {
