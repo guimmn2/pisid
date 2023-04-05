@@ -1,4 +1,4 @@
-CREATE TRIGGER `CreateAlert` AFTER INSERT ON `medicoestemperatura`
+CREATE TRIGGER `CreateAlertTemp` AFTER INSERT ON `medicoestemperatura`
  FOR EACH ROW BEGIN
   DECLARE ongoing_exp_id INT;
   DECLARE temp_ideal DECIMAL(4,2);
@@ -19,16 +19,16 @@ CREATE TRIGGER `CreateAlert` AFTER INSERT ON `medicoestemperatura`
 
     IF ((NEW.leitura) >  temp_ideal + var_max_temp) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENTE', 'PLS STOP', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT', 'Temperatura muito alta', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENTE', 'PLS STOP', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT', 'Temperatura muito baixa', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) > temp_ideal + var_max_temp * 0.9) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'epah yah', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'Temperatura perto do limite máximo', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp * 0.9) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'epah yah', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'Temperatura perto do limite mínimo', CURRENT_TIMESTAMP());
     END IF;
   END IF;
 END

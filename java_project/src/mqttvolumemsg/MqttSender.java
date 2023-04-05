@@ -73,7 +73,7 @@ public class MqttSender implements MqttCallback {
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
 			}else {
-				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 5, SalaSaida: 2}";
+				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);

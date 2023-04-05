@@ -197,7 +197,7 @@ public class MqttToMysql {
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(2, entry);
 								cs.setInt(3, exit);
-								//cs.executeUpdate();
+								cs.executeUpdate();
 								break;
 							}
 

@@ -4,6 +4,8 @@ CREATE TRIGGER `RatsCount` AFTER INSERT ON `medicoespassagens`
 DECLARE expID, salaEntradaExiste, salaSaidaExiste INT;
 SET expID = GetOngoingExpId();
 
+IF NEW.salaentrada <> NEW.salasaida THEN 
+
 SELECT COUNT(1) into salaEntradaExiste
 FROM medicoessala
 WHERE medicoessala.idexperiencia = expID and medicoessala.sala = NEW.salaentrada;
@@ -28,6 +30,8 @@ IF salaSaidaExiste = 1 THEN
 ELSE
     INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
     VALUES (expID, -1, NEW.salasaida);
+END IF;
+
 END IF;
 
 END
