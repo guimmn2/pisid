@@ -1,7 +1,7 @@
+*.ini
 /servers
 java_to_mongo_mqtt/CloudToMongo_*/
 java_mqtt/SimulateSensor*/
 java_mqtt/ReceiveCloud*/
 java_project/paho*
 java_project/SimulateSensor*
-java_project/config_files/*.ini
