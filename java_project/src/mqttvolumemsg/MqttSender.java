@@ -67,19 +67,24 @@ public class MqttSender implements MqttCallback {
 
 			double random = Math.random();
 			
-			if(random < 0.5) {
+			if(random < 0.2) {
 				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
 			}else {
-				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
+				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 2, SalaSaida: 5}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
 			}
 				
-			
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 

@@ -2,7 +2,7 @@ DELIMITER $$
 CREATE DEFINER=`root`@`localhost` FUNCTION `GetOngoingExpId`() RETURNS int(11)
     NO SQL
 BEGIN
-	-- id da exp a decorrer
+    -- id da exp a decorrer
     DECLARE ongoing_exp_id INT;
     
     SELECT id INTO ongoing_exp_id

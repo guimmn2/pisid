@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Apr 05, 2023 at 07:12 PM
+-- Generation Time: Apr 06, 2023 at 06:21 PM
 -- Server version: 10.10.2-MariaDB
 -- PHP Version: 8.0.26
 
@@ -30,13 +30,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `dataInicio` TIME
 
 DECLARE IDExp INT;
 
-SELECT COUNT(1) INTO IDExp 
-FROM experiencia
-WHERE experiencia.id = GetOngoingExpId();
-
-IF IDExp = 1 THEN
-CALL TerminateOngoingExp(CURRENT_TIMESTAMP);
-END IF;
+CALL TerminateOngoingExp(dataInicio,1);
 
 UPDATE experiencia
 SET DataHoraInicio = dataInicio
@@ -46,12 +40,11 @@ WHERE id = (SELECT id FROM experiencia WHERE DataHoraInicio is NULL LIMIT 1);
 END$$
 
 DROP PROCEDURE IF EXISTS `TerminateOngoingExp`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `TerminateOngoingExp` (IN `dataFim` TIMESTAMP)  NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `TerminateOngoingExp` (IN `dataFim` TIMESTAMP, IN `id_razaofim` INT)  NO SQL BEGIN
 
 UPDATE experiencia
-SET DataHoraFim = dataFim
+SET DataHoraFim = dataFim, experiencia.IDRazaoFim = id_razaofim
 WHERE experiencia.id = GetOngoingExpId();
-
 END$$
 
 DROP PROCEDURE IF EXISTS `WriteMov`$$
@@ -136,16 +129,25 @@ CREATE TABLE IF NOT EXISTS `alerta` (
   `mensagem` varchar(100) NOT NULL,
   `horaescrita` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1025 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1036 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `alerta`
 --
 
 INSERT INTO `alerta` (`id`, `hora`, `sala`, `sensor`, `leitura`, `tipo`, `mensagem`, `horaescrita`) VALUES
-(1022, '2023-04-05 18:38:33', NULL, 1, '5.00', 'URGENT', 'PLS STOP', '2023-04-05 18:38:33'),
-(1023, '2023-04-05 19:06:33', 1, NULL, NULL, 'URGENT', 'PLS STOP', '2023-04-05 19:06:33'),
-(1024, '2023-04-05 19:09:40', NULL, 1, '60.00', 'URGENT', 'Temperatura muito alta', '2023-04-05 19:09:40');
+(1024, '2023-04-05 19:09:40', NULL, 1, '60.00', 'URGENT', 'Temperatura muito alta', '2023-04-05 19:09:40'),
+(1025, '2023-04-06 17:21:22', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:21:22'),
+(1026, '2023-04-06 17:27:53', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:27:53'),
+(1027, '2023-04-06 17:29:25', NULL, 1, '80.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 17:29:25'),
+(1028, '2023-04-06 17:30:00', NULL, 1, '-20.00', 'URGENT', 'Temperatura muito baixa', '2023-04-06 17:30:00'),
+(1029, '2023-04-06 17:44:10', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:44:10'),
+(1030, '2023-04-06 17:47:41', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:47:41'),
+(1031, '2023-04-06 17:50:51', NULL, 1, '80.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 17:50:51'),
+(1032, '2023-04-06 18:02:23', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 18:02:23'),
+(1033, '2023-04-06 18:10:57', NULL, 1, '60.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 18:10:57'),
+(1034, '2023-04-06 18:12:18', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 18:12:18'),
+(1035, '2023-04-06 18:19:06', NULL, 1, '50.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 18:19:06');
 
 --
 -- Triggers `alerta`
@@ -155,7 +157,13 @@ DELIMITER $$
 CREATE TRIGGER `TerminateExpUrgentAlert` AFTER INSERT ON `alerta` FOR EACH ROW BEGIN
 
 IF NEW.tipo = 'URGENT' THEN
-	CALL TerminateOngoingExp(NEW.hora);
+	IF NEW.sala IS NOT NULL THEN
+    	-- alerta dos movimentos
+		CALL TerminateOngoingExp(NEW.hora,3);
+    ELSE 
+    	-- alerta da temperatura
+    	CALL TerminateOngoingExp(NEW.hora,2);
+    END IF;
 END IF;
 
 END
@@ -173,29 +181,29 @@ CREATE TABLE IF NOT EXISTS `experiencia` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `descricao` text NOT NULL,
   `investigador` varchar(50) DEFAULT NULL,
-  `DataHoraInicio` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `DataHoraInicio` timestamp NULL DEFAULT NULL,
   `DataHoraFim` timestamp NULL DEFAULT NULL,
   `numeroratos` int(11) NOT NULL,
   `limiteratossala` int(11) NOT NULL,
   `segundossemmovimento` int(11) NOT NULL,
   `temperaturaideal` decimal(4,2) NOT NULL,
   `variacaotemperaturamaxima` decimal(4,2) NOT NULL,
-  `idrazaofim` int(11) DEFAULT NULL,
+  `IDRazaoFim` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `investigador` (`investigador`),
-  KEY `idrazaofim` (`idrazaofim`)
+  KEY `IDRazaoFim` (`IDRazaoFim`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `experiencia`
 --
 
-INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, `DataHoraFim`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`, `idrazaofim`) VALUES
+INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, `DataHoraFim`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`, `IDRazaoFim`) VALUES
 (1, 'ww', NULL, '2023-03-17 21:34:58', '2023-03-17 21:35:04', 3, 3, 3, '22.00', '10.00', NULL),
 (2, 'ww', NULL, '2023-04-05 18:33:58', '2023-04-05 18:33:58', 3, 3, 3, '22.22', '10.22', NULL),
-(6, '', NULL, '2023-04-05 18:34:33', '2023-04-05 18:34:33', 2, 2, 2, '2.00', '2.00', NULL),
-(7, '', NULL, '2023-04-05 18:34:56', '2023-04-05 18:34:50', 2, 2, 2, '2.00', '2.00', NULL),
-(8, '', NULL, '2023-04-05 19:09:40', '2023-04-05 19:09:40', 2, 2, 2, '2.00', '2.00', NULL);
+(6, '', NULL, '2023-04-06 18:10:35', '2023-04-06 18:10:57', 2, 50, 2, '2.00', '2.00', 2),
+(7, '', NULL, '2023-04-06 18:11:33', '2023-04-06 18:11:51', 2, 50, 2, '2.00', '2.00', 1),
+(8, '', NULL, '2023-04-06 18:11:51', '2023-04-06 18:19:06', 2, 2, 2, '2.00', '2.00', 2);
 
 -- --------------------------------------------------------
 
@@ -210,63 +218,34 @@ CREATE TABLE IF NOT EXISTS `medicoespassagens` (
   `salaentrada` int(11) NOT NULL,
   `salasaida` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=187 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=208 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `medicoespassagens`
 --
 
 INSERT INTO `medicoespassagens` (`id`, `hora`, `salaentrada`, `salasaida`) VALUES
-(155, '2023-04-05 17:43:03', 0, 0),
-(157, '2023-04-05 17:43:20', 2, 2),
-(159, '2023-04-05 17:45:57', 1, 1),
-(162, '2023-04-05 17:54:09', 22, 22),
-(164, '2023-04-05 17:55:35', 1, 1),
-(168, '2023-04-05 17:59:28', 6, 4),
-(169, '2023-04-05 18:02:01', 1, 1),
-(171, '2023-04-05 18:33:58', 0, 0),
-(172, '2023-04-05 18:34:33', 0, 0),
-(173, '2023-04-05 18:35:10', 0, 0),
-(174, '2023-04-05 18:36:13', 0, 0),
-(175, '2023-04-05 18:56:23', 6, 4),
-(176, '2023-04-05 18:56:52', 6, 4),
-(177, '2023-04-05 18:57:21', 4, 6),
-(178, '2023-04-05 18:57:48', 2, 1),
-(179, '2023-04-05 18:58:06', 2, 1),
-(180, '2023-04-05 19:00:27', 1, 2),
-(181, '2023-04-05 19:00:42', 1, 2),
-(182, '2023-04-05 19:01:06', 1, 2),
-(183, '2023-04-05 19:04:25', 1, 2),
-(184, '2023-04-05 19:04:28', 1, 2),
-(186, '2023-04-05 19:06:33', 1, 2);
+(196, '2023-04-06 17:27:37', 2, 1),
+(197, '2023-04-06 17:27:45', 2, 1),
+(198, '2023-04-06 17:27:53', 2, 1),
+(199, '2023-04-06 17:33:04', 0, 0),
+(200, '2023-04-06 17:33:44', 0, 0),
+(201, '2023-04-06 17:35:11', 0, 0),
+(202, '2023-04-06 17:35:21', 0, 0),
+(203, '2023-04-06 17:44:10', 2, 1),
+(204, '2023-04-06 17:47:41', 2, 1),
+(205, '2023-04-06 18:02:23', 2, 1),
+(206, '2023-04-06 18:11:51', 0, 0),
+(207, '2023-04-06 18:12:18', 2, 1);
 
 --
 -- Triggers `medicoespassagens`
 --
-DROP TRIGGER IF EXISTS `CreateAlertFullRoom`;
-DELIMITER $$
-CREATE TRIGGER `CreateAlertFullRoom` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
-
-DECLARE nr_ratos, max_ratos INT;
-SET nr_ratos = GetRatsInRoom(NEW.salaentrada);
-
-SELECT experiencia.limiteratossala INTO max_ratos
-FROM experiencia
-WHERE experiencia.id = GetOngoingExpId();
-
-IF (nr_ratos > max_ratos) THEN
-	INSERT INTO alerta (hora,sala,sensor,leitura,tipo,mensagem,horaescrita)
-    VALUES (NEW.hora,NEW.salaentrada,null,null,'URGENT','Excedeu numero de ratos',CURRENT_TIMESTAMP());
-END IF;
-
-END
-$$
-DELIMITER ;
 DROP TRIGGER IF EXISTS `RatsCount`;
 DELIMITER $$
 CREATE TRIGGER `RatsCount` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
 
-DECLARE expID, salaEntradaExiste, salaSaidaExiste INT;
+DECLARE expID, salaEntradaExiste, salaSaidaExiste, nr_ratos, max_ratos INT;
 SET expID = GetOngoingExpId();
 
 IF NEW.salaentrada <> NEW.salasaida THEN 
@@ -295,6 +274,18 @@ IF salaSaidaExiste = 1 THEN
 ELSE
     INSERT INTO medicoessala (idexperiencia, numeroratosfinal, sala)
     VALUES (expID, -1, NEW.salasaida);
+END IF;
+
+SET nr_ratos = GetRatsInRoom(NEW.salaentrada);
+
+SELECT experiencia.limiteratossala INTO max_ratos
+FROM experiencia
+WHERE experiencia.id = GetOngoingExpId();
+
+IF (nr_ratos > max_ratos) THEN
+	INSERT INTO alerta (hora,sala,sensor,leitura,tipo,mensagem,horaescrita)
+    VALUES (NEW.hora,NEW.salaentrada,null,null,'URGENT','Excedeu numero de ratos',CURRENT_TIMESTAMP());
+    
 END IF;
 
 END IF;
@@ -333,10 +324,8 @@ CREATE TABLE IF NOT EXISTS `medicoessala` (
 --
 
 INSERT INTO `medicoessala` (`idexperiencia`, `numeroratosfinal`, `sala`) VALUES
-(2, -1, 4),
-(2, 1, 6),
-(8, 3, 1),
-(8, -3, 2);
+(8, -7, 1),
+(8, 7, 2);
 
 -- --------------------------------------------------------
 
@@ -351,7 +340,7 @@ CREATE TABLE IF NOT EXISTS `medicoestemperatura` (
   `leitura` decimal(4,2) NOT NULL,
   `sensor` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1212 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1217 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `medicoestemperatura`
@@ -360,14 +349,19 @@ CREATE TABLE IF NOT EXISTS `medicoestemperatura` (
 INSERT INTO `medicoestemperatura` (`id`, `hora`, `leitura`, `sensor`) VALUES
 (1209, '2023-04-05 18:38:33', '5.00', 1),
 (1210, '2023-04-05 19:09:20', '60.00', 1),
-(1211, '2023-04-05 19:09:40', '60.00', 1);
+(1211, '2023-04-05 19:09:40', '60.00', 1),
+(1212, '2023-04-06 17:29:25', '80.00', 1),
+(1213, '2023-04-06 17:30:00', '-20.00', 1),
+(1214, '2023-04-06 17:50:51', '80.00', 1),
+(1215, '2023-04-06 18:10:57', '60.00', 1),
+(1216, '2023-04-06 18:19:06', '50.00', 1);
 
 --
 -- Triggers `medicoestemperatura`
 --
-DROP TRIGGER IF EXISTS `CreateAlert`;
+DROP TRIGGER IF EXISTS `CreateAlertTemp`;
 DELIMITER $$
-CREATE TRIGGER `CreateAlert` AFTER INSERT ON `medicoestemperatura` FOR EACH ROW BEGIN
+CREATE TRIGGER `CreateAlertTemp` AFTER INSERT ON `medicoestemperatura` FOR EACH ROW BEGIN
   DECLARE ongoing_exp_id INT;
   DECLARE temp_ideal DECIMAL(4,2);
   DECLARE var_max_temp DECIMAL(4,2);
@@ -426,10 +420,19 @@ CREATE TABLE IF NOT EXISTS `odoresexperiencia` (
 
 DROP TABLE IF EXISTS `razaofim`;
 CREATE TABLE IF NOT EXISTS `razaofim` (
-  `id` int(11) NOT NULL,
-  `descricao` varchar(50) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `descricao` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `razaofim`
+--
+
+INSERT INTO `razaofim` (`id`, `descricao`) VALUES
+(1, 'Acabou normalmente sem anomalias'),
+(2, 'Acabou com anomalias (temperatura excedeu limite)'),
+(3, 'Acabou com anomalias (sala excedeu número de ratos limite)');
 
 -- --------------------------------------------------------
 
@@ -478,7 +481,7 @@ INSERT INTO `utilizador` (`nome`, `telefone`, `tipo`, `email`, `password`) VALUE
 --
 ALTER TABLE `experiencia`
   ADD CONSTRAINT `experiencia_ibfk_1` FOREIGN KEY (`investigador`) REFERENCES `utilizador` (`email`) ON DELETE SET NULL ON UPDATE CASCADE,
-  ADD CONSTRAINT `experiencia_ibfk_2` FOREIGN KEY (`idrazaofim`) REFERENCES `razaofim` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `experiencia_ibfk_2` FOREIGN KEY (`IDRazaoFim`) REFERENCES `razaofim` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `medicoessala`

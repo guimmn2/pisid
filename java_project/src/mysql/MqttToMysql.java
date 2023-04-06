@@ -10,7 +10,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -192,7 +191,7 @@ public class MqttToMysql {
 						for (ArrayList<Integer> arr : roomPairsFromSql) {
 							// valida salas antes de chamar sp
 							if (arr.containsAll(roomPairFromMqtt) || exit == 0 & entry == 0) {
-								System.out.println("Corredor existe: " + roomPairFromMqtt);
+								System.out.println("Corredor existe: " + roomPairFromMqtt + "Hora: " + time);
 								CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(2, entry);
