@@ -140,27 +140,25 @@ public class MqttToMysql {
 			@Override
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
-					
+
 					ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
-					
 
 					while (true) {
-						
+
 						ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
-						
+
 						String message = movementQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
 						String time = objMSG.get("Hora").getAsString();
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
-						
-						
+
 						System.out.println("roomPairsFromSql: " + roomPairsFromSql);
 
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
-						
+
 						System.out.println("roomPairFromMqtt: " + roomPairFromMqtt);
 
 						// ao receber 0-0 faz query à db remota para obter info de salas
@@ -220,6 +218,42 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = alertsQueue.take();
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+
+						//os dois atributos que os alertas ligeiros têm em comum
+						String type = objMSG.get("Tipo").getAsString();
+						String description = objMSG.get("Mensagem").getAsString();
+						
+						
+						String time=null;
+						int sensor=-1;
+						int room=-1;
+						Double leitura = -1.0;
+						
+						//TEM QUE SER + OU - ISTO PORQUE OS LIGHT WARNINGS TÊM DIFERENTES ATRIBUTOS E SE UM ATRIBUTO DER NULL DÁ EXCEPTION
+						//TEM DE SER UM IF PARA CADA TIPO DE ALERTA LIGHT PARA NAO DAR ATRIBUTOS NULL
+						
+						if(type.equals("Rápida variação temp") ||  type.equals("Provável Avaria")) {
+							time = objMSG.get("Hora").getAsString();
+							sensor = objMSG.get("Sensor").getAsInt();
+						}
+						
+						if(type.equals("Entrada mov ratos") || type.equals("Saída mov ratos")) {
+							time = objMSG.get("Hora").getAsString();
+							room = objMSG.get("Sala").getAsInt();
+						}
+
+						if(type.equals("Mensagem descartada")) {
+							time = objMSG.get("Hora").getAsString();
+							leitura = objMSG.get("Leitura").getAsDouble();
+						}
+
+						System.out.println(type);
+						System.out.println(time);
+						System.out.println(sensor);
+						System.out.println(room);
+						System.out.println(description);
+						System.out.println("------------");
 
 					}
 				} catch (InterruptedException | SQLException e) {
