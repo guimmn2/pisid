@@ -19,16 +19,16 @@ CREATE TRIGGER `CreateAlertTemp` AFTER INSERT ON `medicoestemperatura`
 
     IF ((NEW.leitura) >  temp_ideal + var_max_temp) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT', 'Temperatura muito alta', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT_TEMP', 'Temperatura muito alta', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT', 'Temperatura muito baixa', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT_TEMP', 'Temperatura muito baixa', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) > temp_ideal + var_max_temp * 0.9) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'Temperatura perto do limite máximo', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT_TEMP', 'Temperatura perto do limite máximo', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp * 0.9) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'Temperatura perto do limite mínimo', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT_TEMP', 'Temperatura perto do limite mínimo', CURRENT_TIMESTAMP());
     END IF;
   END IF;
 END

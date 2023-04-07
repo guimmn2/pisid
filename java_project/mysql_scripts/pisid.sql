@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Apr 06, 2023 at 06:21 PM
+-- Generation Time: Apr 07, 2023 at 10:44 AM
 -- Server version: 10.10.2-MariaDB
 -- PHP Version: 8.0.26
 
@@ -129,25 +129,16 @@ CREATE TABLE IF NOT EXISTS `alerta` (
   `mensagem` varchar(100) NOT NULL,
   `horaescrita` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1036 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1039 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `alerta`
 --
 
 INSERT INTO `alerta` (`id`, `hora`, `sala`, `sensor`, `leitura`, `tipo`, `mensagem`, `horaescrita`) VALUES
-(1024, '2023-04-05 19:09:40', NULL, 1, '60.00', 'URGENT', 'Temperatura muito alta', '2023-04-05 19:09:40'),
-(1025, '2023-04-06 17:21:22', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:21:22'),
-(1026, '2023-04-06 17:27:53', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:27:53'),
-(1027, '2023-04-06 17:29:25', NULL, 1, '80.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 17:29:25'),
-(1028, '2023-04-06 17:30:00', NULL, 1, '-20.00', 'URGENT', 'Temperatura muito baixa', '2023-04-06 17:30:00'),
-(1029, '2023-04-06 17:44:10', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:44:10'),
-(1030, '2023-04-06 17:47:41', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 17:47:41'),
-(1031, '2023-04-06 17:50:51', NULL, 1, '80.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 17:50:51'),
-(1032, '2023-04-06 18:02:23', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 18:02:23'),
-(1033, '2023-04-06 18:10:57', NULL, 1, '60.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 18:10:57'),
-(1034, '2023-04-06 18:12:18', 2, NULL, NULL, 'URGENT', 'Excedeu numero de ratos', '2023-04-06 18:12:18'),
-(1035, '2023-04-06 18:19:06', NULL, 1, '50.00', 'URGENT', 'Temperatura muito alta', '2023-04-06 18:19:06');
+(1036, '2023-04-07 10:42:05', 2, NULL, NULL, 'URGENT_MOV', 'Excedeu numero de ratos', '2023-04-07 10:42:05'),
+(1037, '2023-04-07 10:42:52', NULL, 1, '60.00', 'URGENT_TEMP', 'Temperatura muito alta', '2023-04-07 10:42:52'),
+(1038, '2023-04-07 10:43:56', NULL, 1, '3.90', 'LIGHT_TEMP', 'Temperatura perto do limite máximo', '2023-04-07 10:43:56');
 
 --
 -- Triggers `alerta`
@@ -156,14 +147,14 @@ DROP TRIGGER IF EXISTS `TerminateExpUrgentAlert`;
 DELIMITER $$
 CREATE TRIGGER `TerminateExpUrgentAlert` AFTER INSERT ON `alerta` FOR EACH ROW BEGIN
 
-IF NEW.tipo = 'URGENT' THEN
-	IF NEW.sala IS NOT NULL THEN
+IF NEW.tipo = 'URGENT_MOV' THEN
     	-- alerta dos movimentos
-		CALL TerminateOngoingExp(NEW.hora,3);
-    ELSE 
+	CALL TerminateOngoingExp(NEW.hora,3);
+END IF;
+
+IF NEW.tipo = 'URGENT_TEMP' THEN
     	-- alerta da temperatura
-    	CALL TerminateOngoingExp(NEW.hora,2);
-    END IF;
+	CALL TerminateOngoingExp(NEW.hora,2);
 END IF;
 
 END
@@ -203,7 +194,7 @@ INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataHoraInicio`, 
 (2, 'ww', NULL, '2023-04-05 18:33:58', '2023-04-05 18:33:58', 3, 3, 3, '22.22', '10.22', NULL),
 (6, '', NULL, '2023-04-06 18:10:35', '2023-04-06 18:10:57', 2, 50, 2, '2.00', '2.00', 2),
 (7, '', NULL, '2023-04-06 18:11:33', '2023-04-06 18:11:51', 2, 50, 2, '2.00', '2.00', 1),
-(8, '', NULL, '2023-04-06 18:11:51', '2023-04-06 18:19:06', 2, 2, 2, '2.00', '2.00', 2);
+(8, '', NULL, '2023-04-06 18:11:51', NULL, 2, 2, 2, '2.00', '2.00', 2);
 
 -- --------------------------------------------------------
 
@@ -218,7 +209,7 @@ CREATE TABLE IF NOT EXISTS `medicoespassagens` (
   `salaentrada` int(11) NOT NULL,
   `salasaida` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=208 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=209 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `medicoespassagens`
@@ -236,7 +227,8 @@ INSERT INTO `medicoespassagens` (`id`, `hora`, `salaentrada`, `salasaida`) VALUE
 (204, '2023-04-06 17:47:41', 2, 1),
 (205, '2023-04-06 18:02:23', 2, 1),
 (206, '2023-04-06 18:11:51', 0, 0),
-(207, '2023-04-06 18:12:18', 2, 1);
+(207, '2023-04-06 18:12:18', 2, 1),
+(208, '2023-04-07 10:42:05', 2, 1);
 
 --
 -- Triggers `medicoespassagens`
@@ -284,7 +276,7 @@ WHERE experiencia.id = GetOngoingExpId();
 
 IF (nr_ratos > max_ratos) THEN
 	INSERT INTO alerta (hora,sala,sensor,leitura,tipo,mensagem,horaescrita)
-    VALUES (NEW.hora,NEW.salaentrada,null,null,'URGENT','Excedeu numero de ratos',CURRENT_TIMESTAMP());
+    VALUES (NEW.hora,NEW.salaentrada,null,null,'URGENT_MOV','Excedeu numero de ratos',CURRENT_TIMESTAMP());
     
 END IF;
 
@@ -324,8 +316,8 @@ CREATE TABLE IF NOT EXISTS `medicoessala` (
 --
 
 INSERT INTO `medicoessala` (`idexperiencia`, `numeroratosfinal`, `sala`) VALUES
-(8, -7, 1),
-(8, 7, 2);
+(8, -8, 1),
+(8, 8, 2);
 
 -- --------------------------------------------------------
 
@@ -340,7 +332,7 @@ CREATE TABLE IF NOT EXISTS `medicoestemperatura` (
   `leitura` decimal(4,2) NOT NULL,
   `sensor` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1217 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1219 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `medicoestemperatura`
@@ -354,7 +346,9 @@ INSERT INTO `medicoestemperatura` (`id`, `hora`, `leitura`, `sensor`) VALUES
 (1213, '2023-04-06 17:30:00', '-20.00', 1),
 (1214, '2023-04-06 17:50:51', '80.00', 1),
 (1215, '2023-04-06 18:10:57', '60.00', 1),
-(1216, '2023-04-06 18:19:06', '50.00', 1);
+(1216, '2023-04-06 18:19:06', '50.00', 1),
+(1217, '2023-04-07 10:42:52', '60.00', 1),
+(1218, '2023-04-07 10:43:56', '3.90', 1);
 
 --
 -- Triggers `medicoestemperatura`
@@ -381,16 +375,16 @@ CREATE TRIGGER `CreateAlertTemp` AFTER INSERT ON `medicoestemperatura` FOR EACH 
 
     IF ((NEW.leitura) >  temp_ideal + var_max_temp) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT', 'Temperatura muito alta', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT_TEMP', 'Temperatura muito alta', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT', 'Temperatura muito baixa', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'URGENT_TEMP', 'Temperatura muito baixa', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) > temp_ideal + var_max_temp * 0.9) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'Temperatura perto do limite máximo', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT_TEMP', 'Temperatura perto do limite máximo', CURRENT_TIMESTAMP());
     ELSEIF ((NEW.leitura) < temp_ideal - var_max_temp * 0.9) THEN
       INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT', 'Temperatura perto do limite mínimo', CURRENT_TIMESTAMP());
+      VALUES (NEW.hora, NULL, NEW.sensor, NEW.leitura, 'LIGHT_TEMP', 'Temperatura perto do limite mínimo', CURRENT_TIMESTAMP());
     END IF;
   END IF;
 END
