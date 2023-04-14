@@ -220,30 +220,69 @@ public class MqttToMysql {
 						String message = alertsQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
-						//os dois atributos que os alertas ligeiros têm em comum
+						// os atributos que os alertas ligeiros vindos do mongo têm em comum
 						String type = objMSG.get("Tipo").getAsString();
 						String description = objMSG.get("Mensagem").getAsString();
-						
-						
-						String time=null;
-						int sensor=-1;
-						int room=-1;
+						String time = objMSG.get("Hora").getAsString();
+
+						// restantes atributos
+						int sensor = -1;
+						int room = -1;
 						Double leitura = -1.0;
-						
-						//TEM QUE SER + OU - ISTO PORQUE OS LIGHT WARNINGS TÊM DIFERENTES ATRIBUTOS E SE UM ATRIBUTO DER NULL DÁ EXCEPTION
-						//TEM DE SER UM IF PARA CADA TIPO DE ALERTA LIGHT PARA NAO DAR ATRIBUTOS NULL
-						
-						if(type.equals("Rápida variação temp") ||  type.equals("Provável Avaria")) {
+
+						// tipo alerta ligeiro vindo do mongo que usa sensores
+						if (type.equals("Rápida variação temp") || type.equals("Provável Avaria")) { // vou ter que alterar isto depois, separar os 4 tipos de alerta
+							
+							type = "LIGHT_TEMP";
 							time = objMSG.get("Hora").getAsString();
 							sensor = objMSG.get("Sensor").getAsInt();
-						}
-						
-						if(type.equals("Entrada mov ratos") || type.equals("Saída mov ratos")) {
-							time = objMSG.get("Hora").getAsString();
-							room = objMSG.get("Sala").getAsInt();
+
+							PreparedStatement stmnt = conn.prepareStatement(
+									"select hora, tipo, sensor from alerta where tipo = 'LIGHT_TEMP' order by id desc limit 1 ");
+							ResultSet rs = stmnt.executeQuery();
+							
+							long milliseconds = 30000;
+							String type_query = null;
+							int sensor_query = -1;
+							
+							if(rs.next()) {
+								milliseconds = Timestamp.valueOf(time).getTime()
+										- Timestamp.valueOf(rs.getString("hora")).getTime();
+								type_query = rs.getString("tipo");
+								sensor_query = rs.getInt("sensor");
+								
+							}
+							
+							// nao aceitar alertas iguais nos proximos 30 segundos
+
+							if (!type.equals(type_query) || sensor != sensor_query
+									|| milliseconds >= 30000) {
+								
+								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+								cs.setTimestamp(1, Timestamp.valueOf(time));
+								cs.setInt(3, sensor);
+								cs.setString(5, type);
+								cs.setString(6, description);
+								cs.executeUpdate();
+							} else {
+								System.out.println("esperar 30 sec");
+							}
+
 						}
 
-						if(type.equals("Mensagem descartada")) {
+						// tipo alerta ligeiro vindo do mongo que usa salas
+						if (type.equals("Entrada mov ratos") || type.equals("Saída mov ratos")) {
+							time = objMSG.get("Hora").getAsString();
+							room = objMSG.get("Sala").getAsInt();
+							CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+							cs.setTimestamp(1, Timestamp.valueOf(time));
+							cs.setInt(2, room);
+							cs.setString(5, "LIGHT_MOV");
+							cs.setString(6, description);
+							cs.executeUpdate();
+						}
+
+						if (type.equals("Mensagem descartada")) {
 							time = objMSG.get("Hora").getAsString();
 							leitura = objMSG.get("Leitura").getAsDouble();
 						}

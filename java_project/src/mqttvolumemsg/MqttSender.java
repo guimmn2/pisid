@@ -67,6 +67,8 @@ public class MqttSender implements MqttCallback {
 
 			double random = Math.random();
 			
+		
+			
 			if(random < 0.33) {
 				String message = "{Tipo: \"" +"Rápida variação temp" + "\", Hora: \"" + timestampString + "\", Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
 				MqttMessage mqtt_message = new MqttMessage();
@@ -82,7 +84,7 @@ public class MqttSender implements MqttCallback {
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("lightWarnings", mqtt_message);
-			}
+			} 
 			
 			/*
 			if(random < 0.5) {
