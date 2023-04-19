@@ -82,7 +82,8 @@ public class CloudToMongo implements MqttCallback {
 			mongo_password = p.getProperty("mongo_password");
 			mongo_replica = p.getProperty("mongo_replica");
 			cloud_server = p.getProperty("cloud_server");
-			cloud_topic = p.getProperty("cloud_topic");
+			//cloud_topic = p.getProperty("cloud_topic");
+			cloud_topic = "test_rats";
 			mongo_host = p.getProperty("mongo_host");
 			mongo_database = p.getProperty("mongo_database");
 			mongo_authentication = p.getProperty("mongo_authentication");
@@ -138,22 +139,96 @@ public class CloudToMongo implements MqttCallback {
 	}
 
 	@Override
-	public void messageArrived(String topic, MqttMessage c) throws Exception {
+	public void messageArrived(String topic, MqttMessage c) {
 		try {
-			System.out.println("Mnesagem C " + topic);
+			System.out.println("Mensagem C " + topic + "--->" + c);
 			DBObject document_json;
+			System.out.println("Linha 146");
 			document_json = (DBObject) JSON.parse(c.toString());
+			System.out.println("Linha 148");
 			checkMessages(topic, document_json);
 			documentLabel.append(c.toString() + "\n");
 		} catch (Exception e) {
-			System.out.println(e);
+			
+			String[] size = e.getMessage().split(",");
+			
+			if(size.length == 3) {
+				if(topic.equals("test_rats")) {
+					if(e.getMessage().contains("Leitura") && e.getMessage().contains("Sensor") && e.getMessage().contains("Hora")){
+						String[] sensor = size[1].split(": ");
+						String[] leitura = size[2].split(": ");
+						leitura[1] = leitura[1].replace("}", "");
+						
+						System.out.println(sensor[1].toString());
+						System.out.println(leitura[1]);
+						
+						if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
+							
+							discardMessage();
+						}
+						
+						
+						if(!leitura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+							System.out.println("Leitura 1: " + leitura[1]);
+							
+							String[] temperatura = leitura[1].split(".");
+							String aux1 = "3.a99999";
+							String[] aux2 = aux1.split(".");
+							
+							System.out.println("AUX2: " + aux2);
+							System.out.println("AUX2: " + aux2[0].toString());
+							System.out.println("AUX2: " + aux2[1].toString());
+							
+							System.out.println("Temperatura " + temperatura.toString());
+							System.out.println("Temp[0] " + temperatura[0].toString());
+							System.out.println("Temp[1] " + temperatura[1].charAt(0));
+							System.out.println("Tamanho: " + temperatura.length);
+							if(temperatura.length != 2) {
+								discardMessage();
+							}
+							if(!temperatura[0].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+								discardMessage();
+							}
+							
+							if(!temperatura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+								String aux = temperatura[1];
+								String[] numbersArray = aux.replaceAll("^-?[0-9]+(\\.[0-9]+)?$", "").split(""); 
+						        int sum = 0;
+						        int count = numbersArray.length;
+
+						        for (String numberStr : numbersArray) {
+						            int number = Integer.parseInt(numberStr);
+						            sum += number;
+						        }
+
+						        
+						        double average = (double) sum / count;
+						        System.out.println(average);
+							}
+							
+							System.out.println("Estamos Ca´");
+						}
+					}
+				}
+
+				if(topic.equals("pisid_mazemov")) {
+					if(e.getMessage().contains("SalaEntrada") && e.getMessage().contains("SalaSaida") && e.getMessage().contains("Hora")){
+						System.out.println("Estamos Ca´");
+					}
+				}
+			}
+
+			System.out.println(e.getMessage());
 		}
 	}
+
 
 	public void checkMessages(String topic, DBObject document_json) throws ParseException {
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
 
+
 		Date doc_json = sdf.parse((String) document_json.get("Hora"));
+
 
 		if (mostRecentDate != null) {
 			Date mostRecent = sdf.parse(mostRecentDate);
@@ -166,7 +241,7 @@ public class CloudToMongo implements MqttCallback {
 			}
 		}
 
-		if (topic.equals("pisid_mazetemp")) {
+		if (topic.equals("test_rats")) {
 			if ((int) document_json.get("Sensor") != 1 && (int) document_json.get("Sensor") != 2) {
 				discardMessage();
 				return;
@@ -192,7 +267,7 @@ public class CloudToMongo implements MqttCallback {
 
 
 			temps.insert(document_json);
-		} else {
+		} else if(topic.equals("pisid_mazemov1")) {
 			if(((int) document_json.get("SalaEntrada")) < 0 || (int)document_json.get("SalaSaida") <0 
 					|| document_json.get("SalaEntrada").toString().matches("[a-zA-Z]+") || document_json.get("SalaSaida").toString().matches("[a-zA-Z]+")) {
 				discardMessage();
@@ -205,7 +280,7 @@ public class CloudToMongo implements MqttCallback {
 					long timestamp = new Date().getTime();
 					String oneSS = sdf.format(timestamp);
 					document_json.put("Hora", oneSS);
-					System.out.println("Sala Entrada 0 e Sala Sa�da 0" + oneSS);
+					System.out.println("Sala Entrada 0 e Sala Sa�da 0" + oneSS);
 				}
 			}
 			lastMovsMessage = document_json;
@@ -221,7 +296,7 @@ public class CloudToMongo implements MqttCallback {
 	}
 
 	public void discardMessage() {
-
+		System.out.println("Mensagem descartada");
 	}
 
 	@Override
