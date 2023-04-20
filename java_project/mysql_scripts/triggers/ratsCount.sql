@@ -40,7 +40,7 @@ WHERE experiencia.id = GetOngoingExpId();
 
 IF (nr_ratos > max_ratos) THEN
     INSERT INTO alerta (hora,sala,sensor,leitura,tipo,mensagem,horaescrita)
-    VALUES (NEW.hora,NEW.salaentrada,null,null,'URGENT_MOV','Excedeu numero de ratos',CURRENT_TIMESTAMP());
+    VALUES (NEW.hora,NEW.salaentrada,null,null,'urgent_mov','Excedeu numero de ratos',CURRENT_TIMESTAMP());
     
 END IF;
 

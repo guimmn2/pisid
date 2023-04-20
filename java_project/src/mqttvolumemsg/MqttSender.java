@@ -67,8 +67,20 @@ public class MqttSender implements MqttCallback {
 
 			double random = Math.random();
 			
-		
+			if(random <= 0.5) {
+				String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 20.1, Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
+				MqttMessage mqtt_message = new MqttMessage();
+				mqtt_message.setPayload(message.getBytes());
+				mqttclient.publish("lightWarnings", mqtt_message);
+			}else {
+				String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 20.1, Sensor: 2, Mensagem: \"" + "Rápida variação de temp registada no sensor 2"+ "\"}";
+				MqttMessage mqtt_message = new MqttMessage();
+				mqtt_message.setPayload(message.getBytes());
+				mqttclient.publish("lightWarnings", mqtt_message);
+			}
 			
+			
+			/*
 			if(random < 0.33) {
 				String message = "{Tipo: \"" +"Rápida variação temp" + "\", Hora: \"" + timestampString + "\", Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
 				MqttMessage mqtt_message = new MqttMessage();
@@ -85,7 +97,7 @@ public class MqttSender implements MqttCallback {
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("lightWarnings", mqtt_message);
 			} 
-			
+			*/
 			/*
 			if(random < 0.5) {
 				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";

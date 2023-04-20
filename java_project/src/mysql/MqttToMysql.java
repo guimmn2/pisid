@@ -225,74 +225,99 @@ public class MqttToMysql {
 						String description = objMSG.get("Mensagem").getAsString();
 						String time = objMSG.get("Hora").getAsString();
 
-						// restantes atributos
-						int sensor = -1;
-						int room = -1;
-						Double leitura = -1.0;
+						//periodicidade alertas repetidos
+						long milliseconds = 30000;
 
 						// tipo alerta ligeiro vindo do mongo que usa sensores
-						if (type.equals("Rápida variação temp") || type.equals("Provável Avaria")) { // vou ter que alterar isto depois, separar os 4 tipos de alerta
-							
-							type = "LIGHT_TEMP";
-							time = objMSG.get("Hora").getAsString();
-							sensor = objMSG.get("Sensor").getAsInt();
+						if (type.equals("light_temp") || type.equals("light_avaria")) {
+
+							int sensor = objMSG.get("Sensor").getAsInt();
 
 							PreparedStatement stmnt = conn.prepareStatement(
-									"select hora, tipo, sensor from alerta where tipo = 'LIGHT_TEMP' order by id desc limit 1 ");
+									"select hora from alerta where tipo = ? and sensor = ? order by id desc limit 1 ");
+							stmnt.setString(1, type);
+							stmnt.setInt(2, sensor);
 							ResultSet rs = stmnt.executeQuery();
-							
-							long milliseconds = 30000;
-							String type_query = null;
-							int sensor_query = -1;
-							
-							if(rs.next()) {
+
+							if (rs.next()) {
 								milliseconds = Timestamp.valueOf(time).getTime()
 										- Timestamp.valueOf(rs.getString("hora")).getTime();
-								type_query = rs.getString("tipo");
-								sensor_query = rs.getInt("sensor");
-								
 							}
-							
+
 							// nao aceitar alertas iguais nos proximos 30 segundos
 
-							if (!type.equals(type_query) || sensor != sensor_query
-									|| milliseconds >= 30000) {
-								
+							if (milliseconds >= 30000) {
+
 								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(3, sensor);
 								cs.setString(5, type);
 								cs.setString(6, description);
 								cs.executeUpdate();
-							} else {
-								System.out.println("esperar 30 sec");
-							}
+							} 
 
 						}
 
 						// tipo alerta ligeiro vindo do mongo que usa salas
-						if (type.equals("Entrada mov ratos") || type.equals("Saída mov ratos")) {
-							time = objMSG.get("Hora").getAsString();
-							room = objMSG.get("Sala").getAsInt();
-							CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
-							cs.setTimestamp(1, Timestamp.valueOf(time));
-							cs.setInt(2, room);
-							cs.setString(5, "LIGHT_MOV");
-							cs.setString(6, description);
-							cs.executeUpdate();
+						if (type.equals("light_mov")) {
+
+							int room = objMSG.get("Sala").getAsInt();
+
+							PreparedStatement stmnt = conn.prepareStatement(
+									"select hora from alerta where tipo = 'light_mov' and sala = ? order by id desc limit 1 ");
+							stmnt.setInt(1, room);
+							ResultSet rs = stmnt.executeQuery();
+
+							if (rs.next()) {
+								milliseconds = Timestamp.valueOf(time).getTime()
+										- Timestamp.valueOf(rs.getString("hora")).getTime();
+							}
+
+							// nao aceitar alertas iguais nos proximos 30 segundos
+
+							if (milliseconds >= 30000) {
+
+								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+
+								cs.setTimestamp(1, Timestamp.valueOf(time));
+								cs.setInt(2, room);
+								cs.setString(5, type);
+								cs.setString(6, description);
+								cs.executeUpdate();
+							}
 						}
 
-						if (type.equals("Mensagem descartada")) {
-							time = objMSG.get("Hora").getAsString();
-							leitura = objMSG.get("Leitura").getAsDouble();
+						if (type.equals("light_descartada")) {
+							
+							Double leitura = objMSG.get("Leitura").getAsDouble();
+							int sensor = objMSG.get("Sensor").getAsInt();
+							
+							PreparedStatement stmnt = conn.prepareStatement(
+									"select hora from alerta where tipo = ? and sensor = ? order by id desc limit 1 ");
+							stmnt.setString(1, type);
+							stmnt.setInt(2, sensor);
+							ResultSet rs = stmnt.executeQuery();
+
+							if (rs.next()) {
+								milliseconds = Timestamp.valueOf(time).getTime()
+										- Timestamp.valueOf(rs.getString("hora")).getTime();
+							}
+
+							// nao aceitar alertas iguais nos proximos 30 segundos
+
+							if (milliseconds >= 30000) {
+
+								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+								cs.setTimestamp(1, Timestamp.valueOf(time));
+								cs.setInt(3, sensor);
+								cs.setDouble(4, leitura);
+								cs.setString(5, type);
+								cs.setString(6, description);
+								cs.executeUpdate();
+							}
+							
 						}
 
-						System.out.println(type);
-						System.out.println(time);
-						System.out.println(sensor);
-						System.out.println(room);
-						System.out.println(description);
-						System.out.println("------------");
 
 					}
 				} catch (InterruptedException | SQLException e) {
