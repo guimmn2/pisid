@@ -10,7 +10,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -141,27 +140,25 @@ public class MqttToMysql {
 			@Override
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
-					
+
 					ArrayList<ArrayList<Integer>> roomPairsFromSql = new ArrayList<ArrayList<Integer>>();
-					
 
 					while (true) {
-						
+
 						ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
-						
+
 						String message = movementQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
 						String time = objMSG.get("Hora").getAsString();
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
-						
-						
+
 						System.out.println("roomPairsFromSql: " + roomPairsFromSql);
 
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
-						
+
 						System.out.println("roomPairFromMqtt: " + roomPairFromMqtt);
 
 						// ao receber 0-0 faz query à db remota para obter info de salas
@@ -192,7 +189,7 @@ public class MqttToMysql {
 						for (ArrayList<Integer> arr : roomPairsFromSql) {
 							// valida salas antes de chamar sp
 							if (arr.containsAll(roomPairFromMqtt) || exit == 0 & entry == 0) {
-								System.out.println("Corredor existe: " + roomPairFromMqtt);
+								System.out.println("Corredor existe: " + roomPairFromMqtt + "Hora: " + time);
 								CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(2, entry);
@@ -221,6 +218,81 @@ public class MqttToMysql {
 					while (true) {
 
 						String message = alertsQueue.take();
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+
+						// os atributos que os alertas ligeiros vindos do mongo têm em comum
+						String type = objMSG.get("Tipo").getAsString();
+						String description = objMSG.get("Mensagem").getAsString();
+						String time = objMSG.get("Hora").getAsString();
+
+						// restantes atributos
+						int sensor = -1;
+						int room = -1;
+						Double leitura = -1.0;
+
+						// tipo alerta ligeiro vindo do mongo que usa sensores
+						if (type.equals("Rápida variação temp") || type.equals("Provável Avaria")) { // vou ter que alterar isto depois, separar os 4 tipos de alerta
+							
+							type = "LIGHT_TEMP";
+							time = objMSG.get("Hora").getAsString();
+							sensor = objMSG.get("Sensor").getAsInt();
+
+							PreparedStatement stmnt = conn.prepareStatement(
+									"select hora, tipo, sensor from alerta where tipo = 'LIGHT_TEMP' order by id desc limit 1 ");
+							ResultSet rs = stmnt.executeQuery();
+							
+							long milliseconds = 30000;
+							String type_query = null;
+							int sensor_query = -1;
+							
+							if(rs.next()) {
+								milliseconds = Timestamp.valueOf(time).getTime()
+										- Timestamp.valueOf(rs.getString("hora")).getTime();
+								type_query = rs.getString("tipo");
+								sensor_query = rs.getInt("sensor");
+								
+							}
+							
+							// nao aceitar alertas iguais nos proximos 30 segundos
+
+							if (!type.equals(type_query) || sensor != sensor_query
+									|| milliseconds >= 30000) {
+								
+								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+								cs.setTimestamp(1, Timestamp.valueOf(time));
+								cs.setInt(3, sensor);
+								cs.setString(5, type);
+								cs.setString(6, description);
+								cs.executeUpdate();
+							} else {
+								System.out.println("esperar 30 sec");
+							}
+
+						}
+
+						// tipo alerta ligeiro vindo do mongo que usa salas
+						if (type.equals("Entrada mov ratos") || type.equals("Saída mov ratos")) {
+							time = objMSG.get("Hora").getAsString();
+							room = objMSG.get("Sala").getAsInt();
+							CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+							cs.setTimestamp(1, Timestamp.valueOf(time));
+							cs.setInt(2, room);
+							cs.setString(5, "LIGHT_MOV");
+							cs.setString(6, description);
+							cs.executeUpdate();
+						}
+
+						if (type.equals("Mensagem descartada")) {
+							time = objMSG.get("Hora").getAsString();
+							leitura = objMSG.get("Leitura").getAsDouble();
+						}
+
+						System.out.println(type);
+						System.out.println(time);
+						System.out.println(sensor);
+						System.out.println(room);
+						System.out.println(description);
+						System.out.println("------------");
 
 					}
 				} catch (InterruptedException | SQLException e) {

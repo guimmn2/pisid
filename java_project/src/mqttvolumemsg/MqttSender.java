@@ -66,19 +66,45 @@ public class MqttSender implements MqttCallback {
 
 			double random = Math.random();
 			
+		
+			
+			if(random < 0.33) {
+				String message = "{Tipo: \"" +"Rápida variação temp" + "\", Hora: \"" + timestampString + "\", Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
+				MqttMessage mqtt_message = new MqttMessage();
+				mqtt_message.setPayload(message.getBytes());
+				mqttclient.publish("lightWarnings", mqtt_message);
+			}else if(random < 0.66) {
+				String message = "{Tipo: \"" +"Entrada mov ratos" + "\", Hora: \"" + timestampString + "\", Sala: 2, Mensagem: \"" + "Rápida entrada na sala 2"+ "\"}";
+				MqttMessage mqtt_message = new MqttMessage();
+				mqtt_message.setPayload(message.getBytes());
+				mqttclient.publish("lightWarnings", mqtt_message);
+			}else {
+				String message = "{Tipo: \"" +"Mensagem descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 9.6, Mensagem: \"" + "Peguntar a syntax deste tipo de msg aos outros"+ "\"}";
+				MqttMessage mqtt_message = new MqttMessage();
+				mqtt_message.setPayload(message.getBytes());
+				mqttclient.publish("lightWarnings", mqtt_message);
+			} 
+			
+			/*
 			if(random < 0.5) {
 				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
 			}else {
-				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
+				String message = "{Hora: \"" + timestampString + "\", SalaEntrada: 2, SalaSaida: 5}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/mov", mqtt_message);
 			}
+			*/
 				
-			
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 	}
 

@@ -5,10 +5,12 @@ BEGIN
 
 DECLARE IDExp INT;
 
-SELECT COUNT(1) INTO IDExp 
-FROM experiencia
-WHERE experiencia.id = GetOngoingExpId();
+CALL TerminateOngoingExp(dataInicio,1);
 
-IF IDExp = 1 THEN
-CALL TerminateOngoingExp(CURRENT_TIMESTAMP);
-END IF;
+UPDATE experiencia
+SET DataHoraInicio = dataInicio
+-- proxima exp a decorrer
+WHERE id = (SELECT id FROM experiencia WHERE DataHoraInicio is NULL LIMIT 1);
+
+END$$
+DELIMITER ;
