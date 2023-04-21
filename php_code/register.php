@@ -38,7 +38,6 @@ if (!filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
 }
 
 // We need to check if the account with that username exists.
-echo "checking if user already exists...";
 if ($stmt = $con->prepare('SELECT email FROM users WHERE username = ?')) {
     // Bind parameters (s = string, i = int, b = blob, etc), hash the password using the PHP password_hash function.
     $stmt->bind_param('s', $_POST['username']);
@@ -52,7 +51,6 @@ if ($stmt = $con->prepare('SELECT email FROM users WHERE username = ?')) {
         // Username doesn't exists, insert new account
         //if ($stmt = $con->prepare('INSERT INTO users (username, password, email, activation_code) VALUES (?, ?, ?, ?)')) {
         if ($stmt = $con->prepare('INSERT INTO users (username, password, email) VALUES (?, ?, ?)')) {
-            echo "user does not exist, creating account";
             // We do not want to expose passwords in our database, so hash the password and use password_verify when a user logs in.
             $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
