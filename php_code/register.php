@@ -1,8 +1,8 @@
 <?php
 // Change this to your connection info.
 $DATABASE_HOST = 'localhost';
-$DATABASE_USER = 'admin_login_test';
-$DATABASE_PASS = '';
+$DATABASE_USER = 'admin_register';
+$DATABASE_PASS = 'admin';
 $DATABASE_NAME = 'login_test';
 // Try and connect using the info above.
 $con = mysqli_connect($DATABASE_HOST, $DATABASE_USER, $DATABASE_PASS, $DATABASE_NAME);
@@ -46,7 +46,7 @@ if ($stmt = $con->prepare('SELECT email FROM users WHERE username = ?')) {
     // Store the result so we can check if the account exists in the database.
     if ($stmt->num_rows > 0) {
         // Username already exists
-        echo 'Username exists, please choose another!';
+        echo 'an account already exists with this email';
     } else {
         // Username doesn't exists, insert new account
         //if ($stmt = $con->prepare('INSERT INTO users (username, password, email, activation_code) VALUES (?, ?, ?, ?)')) {
@@ -60,6 +60,22 @@ if ($stmt = $con->prepare('SELECT email FROM users WHERE username = ?')) {
             $stmt->execute();
 
             echo 'You have successfully registered! You can now login!';
+
+            //create associated user and grant privileges
+            $new_user = $_POST['username'];
+            $create_user_query = "CREATE USER '$new_user'@'localhost' identified BY '$password'";
+            $create_user_result = mysqli_query($con, $create_user_query);
+            if (!$create_user_result) {
+                exit("Could not create user in DB");
+            }
+            $grant_query = "GRANT SELECT ON $DATABASE_NAME.public TO '$new_user'@'localhost'";
+            $grant_result = mysqli_query($con, $grant_query);
+            if (!$grant_result) {
+                exit("Could not grant privileges");
+            }
+            echo "User account created successfully";
+
+
             //TODO: Handle email verification, not a concern at the moment...
             /*
             $from = 'noreply@yourdomain.com';
