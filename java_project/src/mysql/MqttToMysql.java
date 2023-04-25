@@ -106,32 +106,40 @@ public class MqttToMysql {
 		});
 
 		// temperature thread
+
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
-					while (true) {
 
+					while (true) {
 						String message = temperatureQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
+						String id = objMSG.get("_id").getAsString();
 						String time = objMSG.get("Hora").getAsString();
 						double reading = objMSG.get("Leitura").getAsDouble();
 						int sensor = objMSG.get("Sensor").getAsInt();
+						try {
+							CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?,?)}");
+							cs.setString(1, id);
+							cs.setInt(2, sensor);
+							cs.setTimestamp(3, Timestamp.valueOf(time));
+							cs.setDouble(4, reading);
+							System.out.println("Debug Temp: " + message);
 
-						CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?)}");
-						cs.setInt(1, sensor);
-						cs.setTimestamp(2, Timestamp.valueOf(time));
-						cs.setDouble(3, reading);
-
-						cs.executeUpdate();
+							cs.executeUpdate();
+						} catch (SQLException e) {
+							System.err.println("Aviso: Erro de escrita na bd");
+						}
 					}
+
 				} catch (InterruptedException | SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					dataSource.close();
 				}
 			}
+
 		}).start();
 
 		// movement thread
@@ -150,27 +158,43 @@ public class MqttToMysql {
 						String message = movementQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
+						String id = objMSG.get("_id").getAsString();
 						String time = objMSG.get("Hora").getAsString();
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
 
-						System.out.println("roomPairsFromSql: " + roomPairsFromSql);
-
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
-
-						System.out.println("roomPairFromMqtt: " + roomPairFromMqtt);
 
 						// ao receber 0-0 faz query à db remota para obter info de salas
 						if (entry == 0 && exit == 0) {
 							try (Connection cloudConn = DriverManager
 									.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno")) {
-								System.out.println("connecting to remote db to fetch room data");
+								System.out.println("Debug: Connecting to remote db to fetch room data");
+
+								// Statement para os corredores
 								PreparedStatement stmnt = cloudConn
 										.prepareStatement("select salaentrada, salasaida from corredor");
 								ResultSet rs = stmnt.executeQuery();
 								ResultSetMetaData rsmd = rs.getMetaData();
 								int columnCount = rsmd.getColumnCount();
+
+								// Statement para numero salas
+								PreparedStatement stmntSala = cloudConn
+										.prepareStatement("select numerosalas from configuraçãolabirinto");
+								ResultSet rsSala = stmntSala.executeQuery();
+
+								if (rsSala.next()) {
+									try {
+										PreparedStatement csSala = conn.prepareStatement(
+												"insert into configuracaolabirinto(numerosalas) values ("
+														+ rsSala.getInt("numerosalas") + ")");
+										csSala.executeQuery();
+									} catch (SQLException e) {
+										System.err.println("Aviso: Configuracões igual à anterior...Prosseguir");
+									}
+
+								}
 
 								// lista com todos os pares sala dos corredores
 								roomPairsFromSql = new ArrayList<ArrayList<Integer>>(columnCount);
@@ -180,8 +204,6 @@ public class MqttToMysql {
 									pair.add(rs.getInt("salasaida"));
 									roomPairsFromSql.add(pair);
 								}
-								// debug
-								roomPairsFromSql.forEach(p -> System.out.println(p.toString()));
 
 							}
 
@@ -189,12 +211,20 @@ public class MqttToMysql {
 						for (ArrayList<Integer> arr : roomPairsFromSql) {
 							// valida salas antes de chamar sp
 							if (arr.containsAll(roomPairFromMqtt) || exit == 0 & entry == 0) {
-								System.out.println("Corredor existe: " + roomPairFromMqtt + "Hora: " + time);
-								CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?)}");
-								cs.setTimestamp(1, Timestamp.valueOf(time));
-								cs.setInt(2, entry);
-								cs.setInt(3, exit);
-								cs.executeUpdate();
+								try {
+									CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?,?)}");
+									cs.setString(1, id);
+									cs.setTimestamp(2, Timestamp.valueOf(time));
+									cs.setInt(3, entry);
+									cs.setInt(4, exit);
+
+									cs.executeUpdate();
+									System.out.println("Debug Mov: " + message);
+								} catch (SQLException e) {
+									System.err.println("Aviso: Erro na escrita de movimento");
+									e.printStackTrace();
+								}
+
 								break;
 							}
 
@@ -202,8 +232,7 @@ public class MqttToMysql {
 
 					}
 				} catch (InterruptedException | SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					dataSource.close();
 				}
 			}
 		}).start();
@@ -215,6 +244,7 @@ public class MqttToMysql {
 			@Override
 			public void run() {
 				try (Connection conn = dataSource.getConnection()) {
+
 					while (true) {
 
 						String message = alertsQueue.take();
@@ -225,36 +255,21 @@ public class MqttToMysql {
 						String description = objMSG.get("Mensagem").getAsString();
 						String time = objMSG.get("Hora").getAsString();
 
-						//periodicidade alertas repetidos
-						long milliseconds = 30000;
-
 						// tipo alerta ligeiro vindo do mongo que usa sensores
 						if (type.equals("light_temp") || type.equals("light_avaria")) {
 
 							int sensor = objMSG.get("Sensor").getAsInt();
 
-							PreparedStatement stmnt = conn.prepareStatement(
-									"select hora from alerta where tipo = ? and sensor = ? order by id desc limit 1 ");
-							stmnt.setString(1, type);
-							stmnt.setInt(2, sensor);
-							ResultSet rs = stmnt.executeQuery();
-
-							if (rs.next()) {
-								milliseconds = Timestamp.valueOf(time).getTime()
-										- Timestamp.valueOf(rs.getString("hora")).getTime();
-							}
-
-							// nao aceitar alertas iguais nos proximos 30 segundos
-
-							if (milliseconds >= 30000) {
-
+							try {
 								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(3, sensor);
 								cs.setString(5, type);
 								cs.setString(6, description);
 								cs.executeUpdate();
-							} 
+							} catch (SQLException e) {
+								System.err.println("Aviso: Não passou periodicidade alerta");
+							}
 
 						}
 
@@ -262,21 +277,7 @@ public class MqttToMysql {
 						if (type.equals("light_mov")) {
 
 							int room = objMSG.get("Sala").getAsInt();
-
-							PreparedStatement stmnt = conn.prepareStatement(
-									"select hora from alerta where tipo = 'light_mov' and sala = ? order by id desc limit 1 ");
-							stmnt.setInt(1, room);
-							ResultSet rs = stmnt.executeQuery();
-
-							if (rs.next()) {
-								milliseconds = Timestamp.valueOf(time).getTime()
-										- Timestamp.valueOf(rs.getString("hora")).getTime();
-							}
-
-							// nao aceitar alertas iguais nos proximos 30 segundos
-
-							if (milliseconds >= 30000) {
-
+							try {
 								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
 
 								cs.setTimestamp(1, Timestamp.valueOf(time));
@@ -284,29 +285,18 @@ public class MqttToMysql {
 								cs.setString(5, type);
 								cs.setString(6, description);
 								cs.executeUpdate();
+							} catch (SQLException e) {
+								System.err.println("Aviso: Não passou periodicidade alerta");
 							}
+
 						}
 
 						if (type.equals("light_descartada")) {
-							
+
 							Double leitura = objMSG.get("Leitura").getAsDouble();
 							int sensor = objMSG.get("Sensor").getAsInt();
-							
-							PreparedStatement stmnt = conn.prepareStatement(
-									"select hora from alerta where tipo = ? and sensor = ? order by id desc limit 1 ");
-							stmnt.setString(1, type);
-							stmnt.setInt(2, sensor);
-							ResultSet rs = stmnt.executeQuery();
 
-							if (rs.next()) {
-								milliseconds = Timestamp.valueOf(time).getTime()
-										- Timestamp.valueOf(rs.getString("hora")).getTime();
-							}
-
-							// nao aceitar alertas iguais nos proximos 30 segundos
-
-							if (milliseconds >= 30000) {
-
+							try {
 								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
 								cs.setInt(3, sensor);
@@ -314,15 +304,15 @@ public class MqttToMysql {
 								cs.setString(5, type);
 								cs.setString(6, description);
 								cs.executeUpdate();
+								System.out.println("Debug Alert: " + message);
+							} catch (SQLException e) {
+								System.err.println("Aviso: Não passou periodicidade alerta");
 							}
-							
 						}
-
 
 					}
 				} catch (InterruptedException | SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					dataSource.close();
 				}
 			}
 		}).start();
