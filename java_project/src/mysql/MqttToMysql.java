@@ -131,7 +131,7 @@ public class MqttToMysql {
 
 							cs.executeUpdate();
 						} catch (SQLException e) {
-							System.err.println("Aviso: Erro de escrita na bd");
+							System.err.println("Aviso: Alerta não inserido Razão: Periodicidade não passou");
 						}
 					}
 
@@ -179,19 +179,26 @@ public class MqttToMysql {
 								ResultSetMetaData rsmd = rs.getMetaData();
 								int columnCount = rsmd.getColumnCount();
 
-								// Statement para numero salas
-								PreparedStatement stmntSala = cloudConn
-										.prepareStatement("select numerosalas from configuraçãolabirinto");
-								ResultSet rsSala = stmntSala.executeQuery();
+								// Statement para configuraçãoslabirinto
+								PreparedStatement stmntConfig = cloudConn.prepareStatement(
+										"select numerosalas, temperaturaprogramada, segundosaberturaportaexterior from configuraçãolabirinto");
 
-								if (rsSala.next()) {
+								ResultSet rsConfig = stmntConfig.executeQuery();
+
+								if (rsConfig.next()) {
 									try {
-										PreparedStatement csSala = conn.prepareStatement(
-												"insert into configuracaolabirinto(numerosalas) values ("
-														+ rsSala.getInt("numerosalas") + ")");
-										csSala.executeQuery();
+										Double temp_prog = rsConfig.getDouble("temperaturaprogramada");
+										int seg_exterior = rsConfig.getInt("segundosaberturaportaexterior");
+										int nsalas = rsConfig.getInt("numerosalas");
+
+										CallableStatement csConfig = conn.prepareCall("{call WriteConfig(?,?,?)}");
+										csConfig.setDouble(1, temp_prog);
+										csConfig.setInt(2, seg_exterior);
+										csConfig.setInt(3, nsalas);
+
+										csConfig.executeUpdate();
 									} catch (SQLException e) {
-										System.err.println("Aviso: Configuracões igual à anterior...Prosseguir");
+										System.err.println("Aviso: Configuracões não foram carregadas");
 									}
 
 								}
@@ -222,7 +229,6 @@ public class MqttToMysql {
 									System.out.println("Debug Mov: " + message);
 								} catch (SQLException e) {
 									System.err.println("Aviso: Erro na escrita de movimento");
-									e.printStackTrace();
 								}
 
 								break;

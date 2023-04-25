@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Apr 23, 2023 at 02:16 PM
+-- Generation Time: Apr 25, 2023 at 03:23 PM
 -- Server version: 10.10.2-MariaDB
 -- PHP Version: 8.0.26
 
@@ -30,16 +30,26 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `dataInicio` TIME
 
 DECLARE i INT DEFAULT 2;
 DECLARE nrSalas, id_exp, id_existe INT;
+DECLARE temp_ideal DOUBLE(4,2);
 
 CALL TerminateOngoingExp(dataInicio,"Acabou sem anomalias");
 
 SELECT IDExperiencia INTO id_exp FROM parametrosadicionais 
 WHERE parametrosadicionais.DataHoraInicio is NULL LIMIT 1;
 
+SELECT configuracaolabirinto.temperaturaprogramada INTO temp_ideal
+FROM configuracaolabirinto
+WHERE configuracaolabirinto.IDConfiguracao = 0;
+
 UPDATE parametrosadicionais
 SET parametrosadicionais.DataHoraInicio = dataInicio
 -- proxima exp a decorrer
 WHERE IDExperiencia = id_exp;
+
+
+UPDATE experiencia
+SET experiencia.temperaturaideal = temp_ideal
+WHERE experiencia.id = id_exp;
 
 SELECT numerosalas INTO nrSalas FROM configuracaolabirinto
 ORDER BY IDConfiguracao DESC LIMIT 1;
@@ -69,8 +79,29 @@ DROP PROCEDURE IF EXISTS `WriteAlert`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteAlert` (IN `hora` TIMESTAMP, IN `sala` INT, IN `sensor` INT, IN `leitura` DECIMAL(4,2), IN `tipo` VARCHAR(50), IN `mensagem` VARCHAR(50), IN `horaescrita` TIMESTAMP)   BEGIN
 
 IF OngoingExp() THEN
-	INSERT INTO alerta (id, hora, sala, sensor, leitura, tipo, mensagem, horaescrita)
-	VALUES (id, hora, sala, sensor, leitura, tipo, mensagem, horaescrita);
+	INSERT INTO alerta (id, hora, sala, sensor, leitura, tipo, mensagem, horaescrita, IDExperiencia)
+	VALUES (id, hora, sala, sensor, leitura, tipo, mensagem, horaescrita, GetOngoingExpId());
+END IF;
+END$$
+
+DROP PROCEDURE IF EXISTS `WriteConfig`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteConfig` (IN `temp_prog` DOUBLE(4,2), IN `seg_porta_ex` INT, IN `nsalas` INT)   BEGIN
+
+DECLARE existeConfig INT;
+
+SELECT COUNT(*) INTO existeConfig 
+FROM configuracaolabirinto;
+
+IF existeConfig > 0 THEN
+	UPDATE configuracaolabirinto
+    SET 
+    configuracaolabirinto.temperaturaprogramada = temp_prog,
+    configuracaolabirinto.segundosaberturaportaexterior = seg_porta_ex,
+    configuracaolabirinto.numerosalas = nsalas
+    WHERE configuracaolabirinto.IDConfiguracao = 0;
+ELSE
+	INSERT INTO configuracaolabirinto(IDConfiguracao, temperaturaprogramada, segundosaberturaportaexterior, numerosalas)
+    VALUES(0,temp_prog, seg_porta_ex,nsalas);
 END IF;
 END$$
 
@@ -85,11 +116,11 @@ WHERE medicoespassagens.IDMongo = id_mongo;
 
 IF duplicate = 0 THEN
     IF OngoingExp() THEN
-        INSERT INTO medicoespassagens (IDMongo, hora, salaentrada, salasaida)
-        VALUES (id_mongo, hora, salaentrada, salasaida);
+        INSERT INTO medicoespassagens (IDMongo, hora, salaentrada, salasaida, IDExperiencia)
+        VALUES (id_mongo, hora, salaentrada, salasaida, GetOngoingExpId());
     ELSEIF ((salaentrada + salasaida) = 0) THEN
-        INSERT INTO medicoespassagens (IDMongo, hora, salaentrada, salasaida)
-        VALUES (id_mongo, hora, salaentrada, salasaida);
+        INSERT INTO medicoespassagens (IDMongo, hora, salaentrada, salasaida, IDExperiencia)
+        VALUES (id_mongo, hora, salaentrada, salasaida, NULL);
     END IF;
 END IF;
 END$$
@@ -105,7 +136,8 @@ WHERE medicoestemperatura.IDMongo = id_mongo;
 
 IF duplicate = 0 THEN
     IF OngoingExp() THEN
-        INSERT INTO medicoestemperatura (IDMongo, sensor, hora, leitura) VALUES (id_mongo, sensor, hora, leitura);
+        INSERT INTO medicoestemperatura (IDMongo, sensor, hora, leitura, IDExperiencia) 
+        VALUES (id_mongo, sensor, hora, leitura, GetOngoingExpId());
     END IF;
 END IF;
 END$$
@@ -169,26 +201,29 @@ DELIMITER ;
 DROP TABLE IF EXISTS `alerta`;
 CREATE TABLE IF NOT EXISTS `alerta` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `hora` timestamp NOT NULL DEFAULT current_timestamp(),
   `sala` int(11) DEFAULT NULL,
   `sensor` int(11) DEFAULT NULL,
   `leitura` decimal(4,2) DEFAULT NULL,
   `tipo` varchar(20) NOT NULL DEFAULT 'light',
   `mensagem` varchar(100) NOT NULL,
   `horaescrita` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=432376 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+  `IDExperiencia` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `IDExperiencia` (`IDExperiencia`)
+) ENGINE=InnoDB AUTO_INCREMENT=432410 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `alerta`
 --
 
-INSERT INTO `alerta` (`id`, `hora`, `sala`, `sensor`, `leitura`, `tipo`, `mensagem`, `horaescrita`) VALUES
-(432371, '2023-04-23 13:34:27', NULL, 1, '80.01', 'urgent_temp', 'Temperatura muito alta', '2023-04-23 13:34:27'),
-(432372, '2023-04-23 13:34:37', NULL, 1, '80.01', 'urgent_temp', 'Temperatura muito alta', '2023-04-23 13:34:37'),
-(432373, '2023-04-23 13:46:14', 2, NULL, NULL, 'urgent_mov', 'Excedeu numero de ratos', '2023-04-23 13:46:14'),
-(432374, '2023-04-23 13:53:19', 2, NULL, NULL, 'urgent_mov', 'Excedeu numero de ratos', '2023-04-23 13:53:19'),
-(432375, '2023-04-23 13:58:40', 2, NULL, NULL, 'urgent_mov', 'Excedeu numero de ratos', '2023-04-23 13:58:40');
+INSERT INTO `alerta` (`id`, `hora`, `sala`, `sensor`, `leitura`, `tipo`, `mensagem`, `horaescrita`, `IDExperiencia`) VALUES
+(432404, '2023-04-25 15:13:48', NULL, 1, '47.01', 'light_temp', 'Temperatura perto do limite máximo', '2023-04-25 15:13:48', NULL),
+(432405, '2023-04-25 15:13:54', NULL, 1, '47.01', 'light_temp', 'Temperatura perto do limite máximo', '2023-04-25 15:13:54', NULL),
+(432406, '2023-04-25 15:13:59', NULL, 1, '47.01', 'light_temp', 'Temperatura perto do limite máximo', '2023-04-25 15:13:59', NULL),
+(432407, '2023-04-25 15:21:59', 2, NULL, NULL, 'urgent_mov', 'Excedeu numero de ratos', '2023-04-25 15:21:59', NULL),
+(432408, '2023-04-25 15:22:04', 2, NULL, NULL, 'urgent_mov', 'Excedeu numero de ratos', '2023-04-25 15:22:05', NULL),
+(432409, '2023-04-25 15:22:20', 2, NULL, NULL, 'urgent_mov', 'Excedeu numero de ratos', '2023-04-25 15:22:20', NULL);
 
 --
 -- Triggers `alerta`
@@ -205,42 +240,45 @@ SELECT parametrosadicionais.PeriodicidadeAlerta INTO periodicidade
 FROM parametrosadicionais
 WHERE parametrosadicionais.IDExperiencia = GetOngoingExpId();
 
-IF NEW.tipo = 'light_mov' THEN
-	
-    SELECT COUNT(*) INTO alertaExiste FROM alerta 
-    WHERE alerta.tipo = NEW.tipo and alerta.sala = NEW.sala;
-    
-    IF alertaExiste > 0 THEN
-    	SELECT MAX(alerta.hora) into time_alert
-        FROM alerta
-        WHERE alerta.tipo = NEW.tipo and alerta.sala = NEW.sala;
-        
-        IF (TIMESTAMPDIFF(SECOND, time_alert, NEW.hora)) <  periodicidade THEN
-            SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'You can not insert record';
-        END IF;
-        
-    END IF;
-    
-ELSE 
-	
-    SELECT COUNT(*) INTO alertaExiste FROM alerta 
-    WHERE alerta.tipo = NEW.tipo and alerta.sensor = NEW.sensor;
-    
-    IF alertaExiste > 0 THEN
-    	SELECT MAX(alerta.hora) into time_alert
-        FROM alerta
-        WHERE alerta.tipo = NEW.tipo and alerta.sensor = NEW.sensor;
-        
-        IF (TIMESTAMPDIFF(SECOND, time_alert, NEW.hora)) <  periodicidade THEN
-            SIGNAL SQLSTATE '45000'
-            SET MESSAGE_TEXT = 'You can not insert record';
-        END IF;
-        
-    END IF;
-	
-END IF;
+IF NEW.tipo <> 'urgent_temp' THEN
+	IF NEW.tipo <> 'urgent_mov' THEN
+    	
+        IF NEW.tipo = 'light_mov' THEN
 
+            SELECT COUNT(*) INTO alertaExiste
+            FROM alerta
+            WHERE alerta.tipo = NEW.tipo and alerta.sala = NEW.sala;
+
+            IF alertaExiste > 0 THEN
+
+                SELECT MAX(alerta.hora) into time_alert
+                FROM alerta
+                WHERE alerta.tipo = NEW.tipo and alerta.sala = NEW.sala;
+
+                IF (TIMESTAMPDIFF(SECOND, time_alert, NEW.hora)) <  periodicidade THEN
+                    SIGNAL SQLSTATE '45000'
+                    SET MESSAGE_TEXT = 'Periodicidade alerta';
+                END IF;
+            END IF;
+         ELSE 
+         	SELECT COUNT(*) INTO alertaExiste FROM alerta 
+   			WHERE alerta.tipo = NEW.tipo and alerta.sensor = NEW.sensor;
+    
+   		 	IF alertaExiste > 0 THEN
+                SELECT MAX(alerta.hora) into time_alert
+                FROM alerta
+                WHERE alerta.tipo = NEW.tipo and alerta.sensor = NEW.sensor;
+
+                IF (TIMESTAMPDIFF(SECOND, time_alert, NEW.hora)) <  periodicidade THEN
+                    SIGNAL SQLSTATE '45000'
+                    SET MESSAGE_TEXT = 'Periodicidade Alerta';
+                END IF;
+        
+    		END IF;
+	
+		END IF;
+	END IF;
+END IF;
 END
 $$
 DELIMITER ;
@@ -270,39 +308,19 @@ DELIMITER ;
 
 DROP TABLE IF EXISTS `configuracaolabirinto`;
 CREATE TABLE IF NOT EXISTS `configuracaolabirinto` (
-  `IDConfiguracao` int(11) NOT NULL AUTO_INCREMENT,
+  `IDConfiguracao` int(11) NOT NULL,
+  `temperaturaprogramada` double(4,2) NOT NULL,
+  `segundosaberturaportaexterior` int(11) NOT NULL,
   `numerosalas` int(11) NOT NULL,
   PRIMARY KEY (`IDConfiguracao`)
-) ENGINE=MyISAM AUTO_INCREMENT=172 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `configuracaolabirinto`
 --
 
-INSERT INTO `configuracaolabirinto` (`IDConfiguracao`, `numerosalas`) VALUES
-(171, 10);
-
---
--- Triggers `configuracaolabirinto`
---
-DROP TRIGGER IF EXISTS `CheckLastConfig`;
-DELIMITER $$
-CREATE TRIGGER `CheckLastConfig` BEFORE INSERT ON `configuracaolabirinto` FOR EACH ROW BEGIN
-
-DECLARE config_sala INT;
-
-SELECT numerosalas INTO config_sala
-FROM configuracaolabirinto
-ORDER BY IDConfiguracao DESC LIMIT 1;
-
-IF NEW.numerosalas = config_sala THEN
-	SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Config igual à anterior';
-END IF;
-
-END
-$$
-DELIMITER ;
+INSERT INTO `configuracaolabirinto` (`IDConfiguracao`, `temperaturaprogramada`, `segundosaberturaportaexterior`, `numerosalas`) VALUES
+(0, 18.00, 20, 10);
 
 -- --------------------------------------------------------
 
@@ -319,19 +337,20 @@ CREATE TABLE IF NOT EXISTS `experiencia` (
   `numeroratos` int(11) NOT NULL,
   `limiteratossala` int(11) NOT NULL,
   `segundossemmovimento` int(11) NOT NULL,
-  `temperaturaideal` decimal(4,2) NOT NULL,
+  `temperaturaideal` decimal(4,2) DEFAULT NULL,
   `variacaotemperaturamaxima` decimal(4,2) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `investigador` (`investigador`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `experiencia`
 --
 
 INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataRegisto`, `numeroratos`, `limiteratossala`, `segundossemmovimento`, `temperaturaideal`, `variacaotemperaturamaxima`) VALUES
-(1, 'ww', NULL, '2023-04-23 13:33:41', 50, 9999, 9999999, '90.00', '20.00'),
-(2, 'www', NULL, '2023-04-23 13:33:41', 50, 9999, 9999, '90.00', '30.00');
+(21, '', NULL, '2023-04-25 15:18:46', 40, 10, 120, '18.00', '10.00'),
+(22, '', NULL, '2023-04-25 15:18:46', 40, 10, 120, '18.00', '20.00'),
+(23, '', NULL, '2023-04-25 15:19:21', 40, 10, 120, '18.00', '30.00');
 
 --
 -- Triggers `experiencia`
@@ -361,18 +380,56 @@ CREATE TABLE IF NOT EXISTS `medicoespassagens` (
   `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `salaentrada` int(11) NOT NULL,
   `salasaida` int(11) NOT NULL,
-  PRIMARY KEY (`IDMongo`)
+  `IDExperiencia` int(11) DEFAULT NULL,
+  PRIMARY KEY (`IDMongo`),
+  KEY `IDExperiencia` (`IDExperiencia`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 
 --
 -- Dumping data for table `medicoespassagens`
 --
 
-INSERT INTO `medicoespassagens` (`IDMongo`, `hora`, `salaentrada`, `salasaida`) VALUES
-('01b56359-e414-4db0-9102-e37e30d9fb18', '2023-04-23 14:05:24', 0, 0),
-('2ee9b2ec-cdc9-4440-867b-fb0adc34bcb0', '2023-04-23 14:05:07', 0, 0),
-('7a2cc435-0402-48f7-b00f-e47a705fbfcc', '2023-04-23 14:05:34', 0, 0),
-('a9ea2843-32c4-4a30-b908-dd52e376658e', '2023-04-23 14:05:29', 0, 0);
+INSERT INTO `medicoespassagens` (`IDMongo`, `hora`, `salaentrada`, `salasaida`, `IDExperiencia`) VALUES
+('01199311-d01e-4669-bae1-01381db4973d', '2023-04-25 15:20:09', 2, 1, 21),
+('04b1a2ff-c535-4776-aa51-e68470a4512b', '2023-04-25 15:22:20', 2, 1, 23),
+('0702e603-cfd4-47f1-9147-38c1f6585518', '2023-04-25 15:20:11', 2, 1, 21),
+('07fb710e-5497-4805-8c83-4515dddb518e', '2023-04-25 15:22:03', 2, 1, 22),
+('090b979b-4200-419f-866c-f13ce04d88cb', '2023-04-25 15:22:13', 2, 1, 23),
+('0bfdfc2e-56c2-4fd8-9b32-96a172c6dae8', '2023-04-25 15:20:07', 2, 1, 21),
+('15b5a4d8-f9fb-4165-9b7a-b94d9f25683c', '2023-04-25 15:20:22', 2, 1, 22),
+('1674ba6d-fabc-42c8-96f0-e125bbc09dbd', '2023-04-25 15:22:15', 2, 1, 23),
+('1c37d746-043f-44e2-af65-e881cf206f0d', '2023-04-25 15:22:11', 0, 0, NULL),
+('2248bec1-93e6-4bb6-82da-ee508ba634f3', '2023-04-25 15:21:58', 2, 1, 21),
+('433e507b-6814-49f1-917d-8e1fa875b9e8', '2023-04-25 15:21:54', 0, 0, NULL),
+('4df4a6bc-54b2-4d8d-a5dc-abdeafa331eb', '2023-04-25 15:22:12', 2, 1, 23),
+('5482bc2c-0b4c-4213-b5c7-6e0fb82d4501', '2023-04-25 15:21:59', 2, 1, 21),
+('56baf810-5542-4073-acb7-35e9a5bcadf9', '2023-04-25 15:20:19', 2, 1, 22),
+('5c61c9b8-b159-4aea-a704-43afd8af2cff', '2023-04-25 15:21:57', 2, 1, 21),
+('5c645872-eb73-4c4e-84b9-3d83dd42aa0a', '2023-04-25 15:22:16', 2, 1, 23),
+('676cfd99-2268-46ae-8c06-bd766f6701e3', '2023-04-25 15:20:20', 2, 1, 22),
+('6b1d9ed9-713c-4567-8dce-ce6caecd7054', '2023-04-25 15:20:24', 0, 0, 22),
+('6b407c29-2708-4b5b-956f-e408d55bd8d9', '2023-04-25 15:20:08', 2, 1, 21),
+('6c0f81a4-0af7-4a4e-af47-158514ea92b2', '2023-04-25 15:20:25', 2, 1, 23),
+('6f2681fe-64ad-4c99-b0ba-12ae248136bb', '2023-04-25 15:20:29', 0, 0, 23),
+('71e5f76c-6d62-4345-9b07-bf8fd74355d0', '2023-04-25 15:21:56', 2, 1, 21),
+('78bb4c86-1f5b-4213-9d3d-6dd5064e70e2', '2023-04-25 15:20:16', 2, 1, 22),
+('7a99d1a7-e106-42ed-ba1c-967dbeff8a66', '2023-04-25 15:20:28', 2, 1, 23),
+('7d35c552-a4a6-4510-9c85-4bf511b13e3b', '2023-04-25 15:22:02', 0, 0, NULL),
+('80a0ab53-08a7-4fec-bea6-6d1545085cbd', '2023-04-25 15:20:26', 2, 1, 23),
+('95e83aea-35b1-4ebb-867b-473ea12f9e78', '2023-04-25 15:21:55', 2, 1, 21),
+('9a18c6f6-b4b3-454c-8b3c-4311648b651f', '2023-04-25 15:22:19', 2, 1, 23),
+('9b2db9cc-fd57-4de1-85d9-d1663d100794', '2023-04-25 15:22:14', 2, 1, 23),
+('a6ead4d8-ca95-464e-ab2a-079f202a775d', '2023-04-25 15:20:14', 2, 1, 22),
+('aa1e6596-c771-4d70-a3b0-016235bed6b7', '2023-04-25 15:22:04', 2, 1, 22),
+('b6184edf-a768-4f10-9eb3-a4c1c1094abc', '2023-04-25 15:20:10', 2, 1, 21),
+('b92e1f54-22a9-48ff-825a-6d24b1f731c5', '2023-04-25 15:20:17', 2, 1, 22),
+('d3f9014d-a02f-40d9-9918-fdffd2553e62', '2023-04-25 15:20:23', 2, 1, 22),
+('da9b556f-88df-4b4e-aad2-f63ec9ab3182', '2023-04-25 15:22:18', 2, 1, 23),
+('e0c8ac84-2b97-431a-91e7-ba31e7f6fe13', '2023-04-25 15:20:13', 0, 0, 21),
+('e0cf0352-962f-4d4b-a873-23ac7db2497a', '2023-04-25 15:20:06', 0, 0, NULL),
+('e73b2a67-ff2d-4bbe-890a-370581c858a4', '2023-04-25 15:20:18', 2, 1, 22),
+('e8da180d-ff0b-4887-82f7-399fe8ea633d', '2023-04-25 15:20:21', 2, 1, 22),
+('f28fef15-ebfa-4696-8921-4fda31ce14b6', '2023-04-25 15:20:12', 2, 1, 21);
 
 --
 -- Triggers `medicoespassagens`
@@ -480,24 +537,33 @@ CREATE TABLE IF NOT EXISTS `medicoessala` (
 --
 
 INSERT INTO `medicoessala` (`IDExperiencia`, `numeroratosfinal`, `sala`) VALUES
-(1, 13, 1),
-(1, 37, 2),
-(1, 0, 3),
-(1, 0, 4),
-(1, 0, 5),
-(1, 0, 6),
-(1, 0, 7),
-(1, 0, 8),
-(1, 0, 9),
-(2, 0, 1),
-(2, 50, 2),
-(2, 0, 3),
-(2, 0, 4),
-(2, 0, 5),
-(2, 0, 6),
-(2, 0, 7),
-(2, 0, 8),
-(2, 0, 9);
+(21, 29, 1),
+(21, 11, 2),
+(21, 0, 3),
+(21, 0, 4),
+(21, 0, 5),
+(21, 0, 6),
+(21, 0, 7),
+(21, 0, 8),
+(21, 0, 9),
+(22, 29, 1),
+(22, 11, 2),
+(22, 0, 3),
+(22, 0, 4),
+(22, 0, 5),
+(22, 0, 6),
+(22, 0, 7),
+(22, 0, 8),
+(22, 0, 9),
+(23, 29, 1),
+(23, 11, 2),
+(23, 0, 3),
+(23, 0, 4),
+(23, 0, 5),
+(23, 0, 6),
+(23, 0, 7),
+(23, 0, 8),
+(23, 0, 9);
 
 -- --------------------------------------------------------
 
@@ -511,25 +577,10 @@ CREATE TABLE IF NOT EXISTS `medicoestemperatura` (
   `hora` timestamp NOT NULL DEFAULT current_timestamp(),
   `leitura` decimal(4,2) NOT NULL,
   `sensor` int(11) NOT NULL,
-  PRIMARY KEY (`IDMongo`)
+  `IDExperiencia` int(11) DEFAULT NULL,
+  PRIMARY KEY (`IDMongo`),
+  KEY `IDExperiencia` (`IDExperiencia`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
-
---
--- Dumping data for table `medicoestemperatura`
---
-
-INSERT INTO `medicoestemperatura` (`IDMongo`, `hora`, `leitura`, `sensor`) VALUES
-('0e5e4fa6-8282-4789-9e9c-24a4e64f1159', '2023-04-23 14:05:28', '80.01', 1),
-('0f59088c-ffa4-424b-84a9-c9b35c16a859', '2023-04-23 14:05:23', '80.01', 1),
-('56759fb1-3423-41ea-8115-70692e166ad5', '2023-04-23 14:05:21', '80.01', 1),
-('5cf86a3a-5bd3-452f-b545-f2d8910b2559', '2023-04-23 14:05:18', '80.01', 1),
-('731fd9d1-05bc-4859-84f4-ec0451cc7442', '2023-04-23 14:05:19', '80.01', 1),
-('7be26c4a-2b80-4de9-8ef3-b50ee312bd94', '2023-04-23 14:05:22', '80.01', 1),
-('7ee09227-b378-4117-ad80-906755324784', '2023-04-23 14:05:26', '80.01', 1),
-('8b8a13b1-16d6-40b0-857a-bec3f0979fdd', '2023-04-23 14:05:27', '80.01', 1),
-('99e4c1ff-35a1-48c1-8e3b-d5ccfc7b5ef0', '2023-04-23 14:05:25', '80.01', 1),
-('e2a6064c-226b-4374-b22a-30e38a3f2f38', '2023-04-23 14:05:16', '80.01', 1),
-('fb82a24f-e1a4-4676-8ec0-ee1d4695cc50', '2023-04-23 14:05:20', '80.01', 1);
 
 --
 -- Triggers `medicoestemperatura`
@@ -608,8 +659,9 @@ CREATE TABLE IF NOT EXISTS `parametrosadicionais` (
 --
 
 INSERT INTO `parametrosadicionais` (`IDExperiencia`, `DataHoraInicio`, `DataHoraFim`, `MotivoTermino`, `PeriodicidadeAlerta`) VALUES
-(1, '2023-04-23 14:05:07', '2023-04-23 14:05:24', 'Acabou sem anomalias', NULL),
-(2, '2023-04-23 14:05:24', '2023-04-23 14:05:29', 'Acabou sem anomalias', NULL);
+(21, '2023-04-25 15:21:54', '2023-04-25 15:21:59', 'Excedeu numero de ratos', NULL),
+(22, '2023-04-25 15:22:02', '2023-04-25 15:22:04', 'Excedeu numero de ratos', NULL),
+(23, '2023-04-25 15:22:11', '2023-04-25 15:22:20', 'Excedeu numero de ratos', NULL);
 
 -- --------------------------------------------------------
 
@@ -646,16 +698,34 @@ CREATE TABLE IF NOT EXISTS `utilizador` (
 --
 
 --
+-- Constraints for table `alerta`
+--
+ALTER TABLE `alerta`
+  ADD CONSTRAINT `alerta_ibfk_1` FOREIGN KEY (`IDExperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `experiencia`
 --
 ALTER TABLE `experiencia`
   ADD CONSTRAINT `experiencia_ibfk_1` FOREIGN KEY (`investigador`) REFERENCES `utilizador` (`email`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
+-- Constraints for table `medicoespassagens`
+--
+ALTER TABLE `medicoespassagens`
+  ADD CONSTRAINT `medicoespassagens_ibfk_1` FOREIGN KEY (`IDExperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `medicoessala`
 --
 ALTER TABLE `medicoessala`
   ADD CONSTRAINT `medicoessala_ibfk_1` FOREIGN KEY (`IDExperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `medicoestemperatura`
+--
+ALTER TABLE `medicoestemperatura`
+  ADD CONSTRAINT `medicoestemperatura_ibfk_1` FOREIGN KEY (`IDExperiencia`) REFERENCES `experiencia` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `odoresexperiencia`

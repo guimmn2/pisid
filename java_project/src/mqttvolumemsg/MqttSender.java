@@ -136,10 +136,10 @@ public class MqttSender implements MqttCallback {
 				mqttclient.publish("readings/mov", mqtt_message);
 			}else {
 				
-				 String message = "{_id: \"" + randomString+ "\", Hora: \"" + timestampString + "\", Leitura: 80.01, Sensor: 1}";
+				String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString + "\", SalaEntrada: 2, SalaSaida: 1}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("readings/temp", mqtt_message); 
+				mqttclient.publish("readings/mov", mqtt_message);
 				/*
 				String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString + "\", SalaEntrada: 2, SalaSaida: 1}";
 				MqttMessage mqtt_message = new MqttMessage();
