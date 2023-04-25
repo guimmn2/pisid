@@ -131,7 +131,8 @@ public class MqttToMysql {
 
 							cs.executeUpdate();
 						} catch (SQLException e) {
-							System.err.println("Aviso: Alerta não inserido Razão: Periodicidade não passou");
+							e.printStackTrace();
+							//System.err.println("Aviso: Erro escrita da temperatura");
 						}
 					}
 
@@ -166,7 +167,7 @@ public class MqttToMysql {
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
 
-						// ao receber 0-0 faz query à db remota para obter info de salas
+						// ao receber 0-0 faz query à db remota para obter info
 						if (entry == 0 && exit == 0) {
 							try (Connection cloudConn = DriverManager
 									.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno")) {
@@ -243,7 +244,6 @@ public class MqttToMysql {
 			}
 		}).start();
 
-		// TODO
 		// alerts thread
 		new Thread(new Runnable() {
 
