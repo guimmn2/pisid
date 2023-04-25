@@ -131,8 +131,7 @@ public class MqttToMysql {
 
 							cs.executeUpdate();
 						} catch (SQLException e) {
-							e.printStackTrace();
-							//System.err.println("Aviso: Erro escrita da temperatura");
+							System.err.println("Aviso: Erro escrita da temperatura");
 						}
 					}
 
