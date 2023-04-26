@@ -5,3 +5,4 @@ java_mqtt/SimulateSensor*/
 java_mqtt/ReceiveCloud*/
 java_project/paho*
 java_project/SimulateSensor*
+php_code/constants.php
