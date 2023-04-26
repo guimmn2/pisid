@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Criar Experiência</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <h1>Criar Experiência</h1>
+    <form method="post" action="bd_createExperience.php">
+        <label for="numeroratos">Número de ratos</label>
+        <input type="number" id="numeroratos" name="numeroratos" required>
+        <br>
+        <label for="limiteratossala">Limite de ratos por sala</label>
+        <input type="number" id="limiteratossala" name="limiteratossala" required>
+        <br>
+        <label for="segundossemmovimento">Segundos sem movimento</label>
+        <input type="number" id="segundossemmovimento" name="segundossemmovimento" required>
+        <br>
+        <label for="temperaturaideal">Temperatura ideal</label>
+        <input type="number" id="temperaturaideal" name="temperaturaideal" required>
+        <br>
+        <label for="variacaotemperaturamaxima">Variação de temperatura máxima</label>
+        <input type="number" id="variacaotemperaturamaxima" name="variacaotemperaturamaxima" required>
+        <br>
+        <label for="descricao">Descrição</label>
+        <textarea id="descricao" name="descricao"></textarea>
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
