@@ -165,6 +165,8 @@ public class MqttToMysql {
 
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
+						
+						System.out.println("Debug Mov: " + message);
 
 						// ao receber 0-0 faz query à db remota para obter info
 						if (entry == 0 && exit == 0) {
@@ -226,8 +228,9 @@ public class MqttToMysql {
 									cs.setInt(4, exit);
 
 									cs.executeUpdate();
-									System.out.println("Debug Mov: " + message);
+
 								} catch (SQLException e) {
+
 									System.err.println("Aviso: Erro na escrita de movimento");
 								}
 
