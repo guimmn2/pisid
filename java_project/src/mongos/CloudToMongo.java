@@ -13,9 +13,8 @@ import java.util.*;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.io.*;
 import javax.swing.*;
 import java.awt.*;
@@ -45,10 +44,14 @@ public class CloudToMongo implements MqttCallback {
 	private DBObject lastTempsMessageSensor1;
 	private DBObject lastTempsMessageSensor2;
 	private DBObject lastMovsMessage;
-	private String mostRecentDate;
-	private boolean isValid;
+	//hora em que é iniciado o programa
+	private String mostRecentDate =LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS"));
+	private int[] discardCounters = new int[3];
 
-	private RatsCount ratsCount;
+	private static final long RESET_TIME_MS = 4000;
+	private int[]varRooms = new int[14];
+	private long[]lastUpdateTime = new long[14];
+	private double[]varSensors = new double[2];
 
 	private static void createWindow() {
 		JFrame frame = new JFrame("Cloud to Mongo");
@@ -82,8 +85,8 @@ public class CloudToMongo implements MqttCallback {
 			mongo_password = p.getProperty("mongo_password");
 			mongo_replica = p.getProperty("mongo_replica");
 			cloud_server = p.getProperty("cloud_server");
-			//cloud_topic = p.getProperty("cloud_topic");
-			cloud_topic = "test_rats";
+			cloud_topic = p.getProperty("cloud_topic");
+			//cloud_topic = "test_rats";
 			mongo_host = p.getProperty("mongo_host");
 			mongo_database = p.getProperty("mongo_database");
 			mongo_authentication = p.getProperty("mongo_authentication");
@@ -133,170 +136,448 @@ public class CloudToMongo implements MqttCallback {
 		temps = db.getCollection(mongo_collection);
 		movs = db.getCollection(mongo_collection_1);
 		lightWarnings = db.getCollection(mongo_collection_2);
-
+		BasicDBObject index = new BasicDBObject("createdAt", 1);
+        BasicDBObject options = new BasicDBObject("expireAfterSeconds", 604800);
+        temps.createIndex(index, options);
+        movs.createIndex(index, options);
+        lightWarnings.createIndex(index, options);
 		// ratsCount.start();
 
 	}
 
 	@Override
-	public void messageArrived(String topic, MqttMessage c) {
-		try {
-			System.out.println("Mensagem C " + topic + "--->" + c);
-			DBObject document_json;
-			System.out.println("Linha 146");
-			document_json = (DBObject) JSON.parse(c.toString());
-			System.out.println("Linha 148");
-			checkMessages(topic, document_json);
-			documentLabel.append(c.toString() + "\n");
-		} catch (Exception e) {
-			
-			String[] size = e.getMessage().split(",");
-			
-			if(size.length == 3) {
-				if(topic.equals("test_rats")) {
-					if(e.getMessage().contains("Leitura") && e.getMessage().contains("Sensor") && e.getMessage().contains("Hora")){
-						String[] sensor = size[1].split(": ");
-						String[] leitura = size[2].split(": ");
-						leitura[1] = leitura[1].replace("}", "");
-						
-						System.out.println(sensor[1].toString());
-						System.out.println(leitura[1]);
-						
-						if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
-							
-							discardMessage();
-						}
-						
-						
-						if(!leitura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
-							System.out.println("Leitura 1: " + leitura[1]);
-							
-							String[] temperatura = leitura[1].split(".");
-							String aux1 = "3.a99999";
-							String[] aux2 = aux1.split(".");
-							
-							System.out.println("AUX2: " + aux2);
-							System.out.println("AUX2: " + aux2[0].toString());
-							System.out.println("AUX2: " + aux2[1].toString());
-							
-							System.out.println("Temperatura " + temperatura.toString());
-							System.out.println("Temp[0] " + temperatura[0].toString());
-							System.out.println("Temp[1] " + temperatura[1].charAt(0));
-							System.out.println("Tamanho: " + temperatura.length);
-							if(temperatura.length != 2) {
-								discardMessage();
-							}
-							if(!temperatura[0].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
-								discardMessage();
-							}
-							
-							if(!temperatura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
-								String aux = temperatura[1];
-								String[] numbersArray = aux.replaceAll("^-?[0-9]+(\\.[0-9]+)?$", "").split(""); 
-						        int sum = 0;
-						        int count = numbersArray.length;
+	public void messageArrived(String topic, MqttMessage c) throws ParseException {
+		documentLabel.append("-----------------------------------------------------\n");
+		documentLabel.append("Message received:"+c.toString()+" \n");
 
-						        for (String numberStr : numbersArray) {
-						            int number = Integer.parseInt(numberStr);
-						            sum += number;
-						        }
-
-						        
-						        double average = (double) sum / count;
-						        System.out.println(average);
-							}
-							
-							System.out.println("Estamos Ca´");
-						}
-					}
-				}
-
-				if(topic.equals("pisid_mazemov")) {
-					if(e.getMessage().contains("SalaEntrada") && e.getMessage().contains("SalaSaida") && e.getMessage().contains("Hora")){
-						System.out.println("Estamos Ca´");
-					}
-				}
-			}
-
-			System.out.println(e.getMessage());
-		}
+		validateMessage(topic, c.toString());
 	}
 
+	/**
+	 * Validates the message given
+	 * @param topic the topic from which the message came from
+	 * @param message the message that will be validated
+	 */
+	private void validateMessage(String topic, String message) {
 
-	public void checkMessages(String topic, DBObject document_json) throws ParseException {
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+
+		//cleanMsg - mensagem limpa sem as chavetas e espaços
+		String cleanMsg  = message.replace("{", "");
+		cleanMsg  = cleanMsg.replace("}", "");
 
 
-		Date doc_json = sdf.parse((String) document_json.get("Hora"));
+		//fields - array de strings em que
+		// Temperaturas    | Movimentos
+		// [0] - Hora      | (preencher de acordo)
+		// [1] - Sensor    |
+		// [2] - Leitura   |
+		String[] fields = cleanMsg.split(",");
 
 
-		if (mostRecentDate != null) {
-			Date mostRecent = sdf.parse(mostRecentDate);
+		//Se não existir 3 campos exclusivamente então a mensagem está errada e será descartada
+		if(fields.length == 3) {
 
-			String str = sdf.format(new Date());
-			Date curr_time = sdf.parse(str);
+			//Validações comuns aos tópicos
+			//Hora
 
-			if (doc_json.before(mostRecent) || doc_json.after(curr_time) || document_json.get("Hora").toString().matches("[a-zA-Z]+")) {
-				document_json.put("Hora", mostRecentDate);
+			// Mensagem do tempo -> Hora: "2023-01-09 10:43:49.816173"
+			// Damos split pelos dois pontos e ficamos com a parte da data e da hora. De seguida passamos de string para o formato LocalDateTime para mais tarde
+			// podermos comparar com outras datas
+
+			//if(message.contains("Hora")) {
+			// Validações comuns aos tópicos
+			// Hora
+
+			// Mensagem do tempo -> Hora: "2023-01-09 10:43:49.816173"
+			// Damos split pelos dois pontos e ficamos com a parte da data e da hora. De
+			// seguida passamos de string para o formato LocalDateTime para mais tarde
+			// podermos comparar com outras datas
+			if (message.contains("Hora")) { 
+
+				String[] hour = fields[0].split(":", 2);
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+				String dateAndTime = hour[1].replace("\"", "").trim();
+
+				if (!dateAndTime.matches("^[0-9: -\\.]*$")) {
+					documentLabel.append("A Hora contém letras\n");
+					String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
+					documentLabel.append(
+							"New Message com hora atualizada devido à existência de letras: " + newMessage + "\n");
+					message = newMessage;
+				}else {
+					// criamos o objeto dateTime do tipo LocalDateTime para poder mais tarde fazer
+					// comparações entre datas
+
+					LocalDateTime dateTime = LocalDateTime.parse(dateAndTime, formatter);
+
+					// verifica primeiro se existe algo associado à var mostRecentDate. De seguida
+					// vai verificar se a hora da mensagemr recebida se encontra no futuro
+					// Se for esse o caso, ent vamos alterar a data dessa mensagem para a
+					// mostRecentDate.
+					// Atribui à var mostRecentDate a hora atual, ou seja, a hora em que é iniciado
+					// o programa.
+					if (mostRecentDate != null) {
+						LocalDateTime now = LocalDateTime.now();
+						if (dateTime.compareTo(now) > 0) {
+							documentLabel.append("Encontra-se no futuro\n");
+							String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
+							documentLabel.append("New Message com hora atualizada: " + newMessage + "\n");
+							message = newMessage;
+						}
+
+						LocalDateTime recentDate = LocalDateTime.parse(mostRecentDate, formatter);
+
+						// Comparamos a data da mensagem com a data da ultima mensagem mais recente
+						// recebida.
+						// Caso a data da mensagem atual seja anterior à da ultima mensagem recebida,
+						// entao substituímos
+						if (dateTime.compareTo(recentDate) < 0) {
+							documentLabel.append("A data da mensagem é anterior à da mais recente que temos\n");
+							String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
+							documentLabel.append("New Message com hora atualizada: " + newMessage + "\n");
+							message=newMessage;
+						}
+					}
+				}
 			}
+			
+			cleanMsg="";
+			cleanMsg  = message.replace("{", "");
+			cleanMsg  = cleanMsg.replace("}", "");
+			cleanMsg  = cleanMsg.replaceAll(" ", "");
+			
+			//Validações para o tópico "pisid_mazetemp"
+			if(topic.equals("pisid_mazetemp")) {
+				validateTemps(cleanMsg, message);
+
+			}else if(topic.equals("a")) {
+				validateMovs(cleanMsg, message);
+			}
+
+		}else {
+			documentLabel.append("Message Discarded INVALID NR OF FIELDS\n");
+			return;
 		}
 
-		if (topic.equals("test_rats")) {
-			if ((int) document_json.get("Sensor") != 1 && (int) document_json.get("Sensor") != 2) {
-				discardMessage();
+	}
+
+	private void validateMovs(String cleanMsg, String message) {
+		String fields[] = cleanMsg.split(",");
+		//Verificar se tem os 3 campos certos necessÃ¡rios
+		if(cleanMsg.contains("SalaEntrada") && cleanMsg.contains("SalaSaida") && cleanMsg.contains("Hora")) {
+			
+			String[] salaSaida = fields[1].split(":");
+			String[] salaEntrada = fields[2].split(":");
+
+			if(salaSaida[1].equals(salaEntrada[1]) && (!salaSaida[1].equals("0") && !salaEntrada[1].equals("0"))) {
+				
+				documentLabel.append("Message Discarded ROOM\n");
+				discardMessage(0, message);
+				return;
+
+			}
+
+
+			if(!salaSaida[1].matches("^-?[0-9]+(\\.[0-9]+)?$") || !salaEntrada[1].matches("^-?[0-9]+(\\.[0-9]+)?$")) {
+				documentLabel.append("Message Discarded ROOM\n");
+				discardMessage(0, message);
 				return;
 			}
 
-			if (!document_json.get("Leitura").toString().matches("^-?[0-9]+(\\.[0-9]+)?$")) {
-				discardMessage();
+			if(Integer.parseInt(salaSaida[1]) < 0 || Integer.parseInt(salaEntrada[1]) < 0) {
+				documentLabel.append("Message Discarded ROOM\n");
+				discardMessage(0, message);
+				return;
+			}
+		}
+		
+		DBObject document_json;
+		document_json = (DBObject) JSON.parse(message);
+		saveToMongo("movs", document_json);
+	}
+
+	private void validateTemps(String cleanMsg, String message) {
+
+		String fields[] = cleanMsg.split(",");
+		//Verificar se tem os 3 campos certos necessários
+		if(cleanMsg.contains("Leitura") && cleanMsg.contains("Sensor") && cleanMsg.contains("Hora")){
+			String[] sensor = fields[1].split(":");
+			String[] leitura = fields[2].split(":");
+
+			if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
+				documentLabel.append("Message Discarded SENSOR\n");
+				discardMessage(Integer.parseInt(sensor[1]), message);
 				return;
 			}
 
+			//Se passar neste if existem letras na temperatura!
+			if(!leitura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+
+				//Damos split à temperatura pelo primeiro ponto que aparecer, todos os subsequentes serão considerados letras.
+				String[] temperatura = leitura[1].split("[.]", 2);
+
+				//Verificar se existe alguma letra na primeira parte da leitura
+
+				if(!temperatura[0].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+					documentLabel.append("Message Discarded READING WITH LETTER BEFORE DOT\n");
+					discardMessage(Integer.parseInt(sensor[1]), message);
+					return;
+				}
+
+
+				//Verificar se existe alguma letra na segunda parte da leitura, se sim então fazer a média retirando as letras
+				//e deixando só os números existentes (se não houverem numeros existentes a media é 5).
+				//Substituir todas as letras pela média.
+
+				if(!temperatura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+					String aux = temperatura[1];
+					String[] numbersArray = aux.replaceAll("[^0-9]","").split("");
+					int average;
+					if(numbersArray.length == 1)
+						average = 5;
+					else {
+
+						int sum = 0;
+						int count = numbersArray.length;
+
+						for (String numberStr : numbersArray) {
+							int number = Integer.parseInt(numberStr);
+							sum += number;
+						}
+
+
+						average = sum / count;
+
+					}
+
+					aux = aux.replaceAll("[^0-9]", Integer.toString(average));
+
+					//Criar nova mensagem com a temperatura alterada
+
+					fields[0] = fields[0].replaceFirst(":", ": ");
+					fields[1] = fields[1].replace(":", ": ");
+					fields[2] = fields[2].replace(":", ": ");
+
+					String newMessage = "{" + fields[0]+", "+fields[1]+", Leitura: "+temperatura[0]+"."+aux+"}";
+					documentLabel.append("New Message: " + newMessage+ "\n");
+
+					//Substituímos a mensagem recebida pela nova mensagem correta
+					message = newMessage;
+
+
+				}
+			}
+
+			//No final criamos um DBObject com a mensagem (Caso esta tenha sido alterada nos passos acima será a newMessage)
+			DBObject document_json;
+			document_json = (DBObject) JSON.parse(message);
+
+
+			//Validar se temos dados da última mensagem do sensor da mensagem recebida, se tivermos então validar se a variação em relação a essa última leitura é superior a 4.
+			//Se sim descarta
 			if ((lastTempsMessageSensor1 != null && (int) document_json.get("Sensor") == 1 && Math.abs((double) lastTempsMessageSensor1.get("Leitura")
 					- (double) document_json.get("Leitura")) >= 4) || (lastTempsMessageSensor2 != null && (int) document_json.get("Sensor") == 2
 					&& Math.abs((double) lastTempsMessageSensor2.get("Leitura") - (double) document_json.get("Leitura")) >= 4)) {
 
-				discardMessage();
+				documentLabel.append("Message Discarded IMPOSSIBLE TEMP VAR\n");
+				discardMessage((int)(document_json.get("Sensor")), message);
 				return;
 			}
 
-			if((int) document_json.get("Sensor") == 1)
-				lastTempsMessageSensor1 = document_json;
-			else
-				lastTempsMessageSensor2 = document_json;
 
+			//Caso o código chegue aqui significa que a mensagem está neste momento boa para guardar na BD, 
+			//Por isso chamamos a função saveToMongo para guardar na coleção temps.
+			System.out.println("SAVE");
+			saveToMongo("temps", document_json);
 
-			temps.insert(document_json);
-		} else if(topic.equals("pisid_mazemov1")) {
-			if(((int) document_json.get("SalaEntrada")) < 0 || (int)document_json.get("SalaSaida") <0 
-					|| document_json.get("SalaEntrada").toString().matches("[a-zA-Z]+") || document_json.get("SalaSaida").toString().matches("[a-zA-Z]+")) {
-				discardMessage();
-				return;
-			}
-			if (document_json.containsField("SalaEntrada") && document_json.containsField("SalaSaida")) {
-				int salaEntra = (int) document_json.get("SalaEntrada");
-				int salaSaida = (int) document_json.get("SalaSaida");
-				if (salaEntra == 0 && salaSaida == 0) {
-					long timestamp = new Date().getTime();
-					String oneSS = sdf.format(timestamp);
-					document_json.put("Hora", oneSS);
-					System.out.println("Sala Entrada 0 e Sala Sa�da 0" + oneSS);
-				}
-			}
-			lastMovsMessage = document_json;
-			movs.insert(document_json);
+		}else {
 
+			documentLabel.append("Message Discarded NOT VALID FIELDS\n");
+			return;
 		}
-		if(mostRecentDate!= null) {
-			Date mostRecent = sdf.parse(mostRecentDate);
-			if(doc_json.after(mostRecent))
-				mostRecentDate = doc_json.toString();
-		}
-
 	}
 
-	public void discardMessage() {
-		System.out.println("Mensagem descartada");
+	/** 
+	 * Discards a message.
+	 * <p>
+	 * If it isn't the third in a row from the given type, it creates a lightWarning 'Mensagem Descartada' else it creates a 'Possível Avaria' one.
+	 *	@param type 0 - Rats Movement; 1 - Sensor 1; 2 - Sensor 2
+	 *	@param message The message that's supposed to be discarded
+	 *				
+	 */
+	private void discardMessage(int type, String message) {
+		if(discardCounters[type] < 3) {
+			createLightWarning("disc", message, 0);
+			discardCounters[type]++;
+		}else {
+			createLightWarning("probAv", "", type);
+			discardCounters[type] = 0;
+		}
+	}
+
+	/** This function creates a DBObject 'lightWarning' with the given type.
+	 * <br>
+	 * 	If the type is 'disc' then the only param looked at is the message which must be filled, otherwise it can be just blank.
+	 * <br>
+	 *  For the other types the param SensorOrRoom needs to be filled with the sensor or room in question.
+	 * 
+	 * @param type rapVar - Rápida Variação temp at SensorOrRoom
+	 * 			   <br>entMov - Rápida entrada de ratos at SensorOrRoom
+	 * 			   <br>saidaMov - Rápida Saida de ratos at SensorOrRoom
+	 * 			   <br>disc - param message was discarded
+	 * 			   <br>provAv - Provável Avaria at SensorOrRoom
+	 * 
+	 * @param message The message that was discarted. Is only need if type is "disc", otherwise can be blank
+	 * @param SensorOrRoom The Sensor or Room, depending on the type, that the lightWarning refers to
+	 */
+	private void createLightWarning(String type, String message, int SensorOrRoom) {
+
+		DBObject lightWarning = new BasicDBObject();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+		String str = sdf.format(new Date());
+		lightWarning.put("Hora", str);
+
+		switch(type) {
+		case "rapVar":
+			lightWarning.put("Tipo", "light_temp");		
+			lightWarning.put("Sensor", SensorOrRoom);
+			lightWarning.put("Mensagem", "Rápida variação da temperatura registada no sensor " + SensorOrRoom +".");
+			documentLabel.append("Created LightWarning light_temp\n");
+			break;
+
+		case "entMov":
+			lightWarning.put("Tipo", "light_mov");
+			lightWarning.put("Sala", SensorOrRoom);
+			lightWarning.put("Mensagem", "Rápida entrada de ratos registada na sala " + SensorOrRoom+".");
+			documentLabel.append("Created LightWarning light_mov\n");
+			break;
+
+		case "saidaMov":
+			lightWarning.put("Tipo", "light_mov");
+			lightWarning.put("Sala", SensorOrRoom);
+			lightWarning.put("Mensagem", "Rápida saída de ratos registada na sala " + SensorOrRoom+".");
+			documentLabel.append("Created LightWarning light_mov\n");
+			break;
+
+		case "disc":
+			lightWarning.put("Tipo", "descartada");
+			lightWarning.put("Mensagem", message);
+			documentLabel.append("Created LightWarning descartada\n");
+			break;
+
+		case "probAv":
+			lightWarning.put("Tipo", "avaria");
+			lightWarning.put("Sensor", SensorOrRoom);
+			lightWarning.put("Mensagem", "Provável avaria no sensor "+ SensorOrRoom + ".");
+			documentLabel.append("Created LightWarning avaria\n");
+			break;
+
+		}
+
+		saveToMongo("lightWarnings", lightWarning);
+	}
+
+	/**
+	 * Void function that saves to document_json to the given collection.
+	 * <br>
+	 * Will reset the corresponding discard counter if it exists!
+	 * 
+	 * @param collection "temps", "movs" or "lightWarnings"
+	 * @param document_json The DBObject to save to the collection
+	 */
+	private void saveToMongo(String collection, DBObject document_json) {
+		mostRecentDate = document_json.get("Hora").toString();
+		document_json.put("createdAt", new Date());
+		switch(collection) {
+
+		case "temps": 
+			discardCounters[(int)document_json.get("Sensor")] = 0;
+			alterVarCounters("sensor", document_json);
+
+			if((int) document_json.get("Sensor") == 1) {
+				lastTempsMessageSensor1 = document_json;
+			}else
+				lastTempsMessageSensor2 = document_json;
+
+			temps.insert(document_json);
+			break;
+
+		case "movs": movs.insert(document_json);
+		discardCounters[0] = 0;
+		
+		if(document_json.get("SalaEntrada").equals(0) && document_json.get("SalaSaida").equals(0)) {
+			lastMovsMessage = document_json;
+			break;
+		}
+		
+		alterVarCounters("room", document_json);
+		lastMovsMessage = document_json;
+		break;
+
+		case "lightWarnings": lightWarnings.insert(document_json);	
+			break;
+		}
+
+		documentLabel.append("Saved to Mongo\n");
+	}
+
+	private void alterVarCounters(String type, DBObject document_json) {
+		switch(type) {
+		case "sensor":
+			double diff = 0;
+			if(document_json.get("Sensor").equals(1)) {
+				if(lastTempsMessageSensor1 == null) break;
+				diff =  (double)document_json.get("Leitura") - (double)lastTempsMessageSensor1.get("Leitura");
+			}else {
+				if(lastTempsMessageSensor2 == null) break;
+				diff =  (int)document_json.get("Leitura") - (int)lastTempsMessageSensor2.get("Leitura");
+			}
+
+			if(diff>=1 || diff<=-1)
+				varSensors[(int)document_json.get("Sensor")-1] += diff ;
+			else if(varSensors[(int)document_json.get("Sensor")-1] > 0) {
+				varSensors[(int)document_json.get("Sensor")-1] --;
+			}else if(varSensors[(int)document_json.get("Sensor")-1] < 0) {
+				varSensors[(int)document_json.get("Sensor")-1] ++;
+			}
+
+			if(varSensors[(int)document_json.get("Sensor")-1] >= 5 || varSensors[(int)document_json.get("Sensor")-1] <= -5) {
+				createLightWarning("rapVar", "", (int)document_json.get("Sensor"));
+				varSensors[(int)document_json.get("Sensor")-1] = 0;
+			}
+
+			break;
+
+		case "room":
+			long currentTime = System.currentTimeMillis();
+            for (int i = 0; i < 14; i++) {
+            	System.out.println("i: "+lastUpdateTime[i]);
+                if (varRooms[i] > 0 && currentTime - lastUpdateTime[i] > RESET_TIME_MS) {
+                    varRooms[i] = 0;
+                    System.out.printf("Counter for index %d has been reset.%n", i);
+                }
+            }
+
+			varRooms[(int)document_json.get("SalaEntrada")-1]++;
+			System.out.println(varRooms[(int)document_json.get("SalaEntrada")-1]);
+			varRooms[(int)document_json.get("SalaSaida")-1]--;
+			System.out.println(varRooms[(int)document_json.get("SalaSaida")-1]);
+		
+			lastUpdateTime[(int)document_json.get("SalaEntrada")-1] = System.currentTimeMillis();
+			lastUpdateTime[(int)document_json.get("SalaSaida")-1] = System.currentTimeMillis();
+			
+			if(varRooms[(int)document_json.get("SalaEntrada")-1] >= 5) {
+				createLightWarning("entMov","",(int)document_json.get("SalaEntrada"));
+				varRooms[(int)document_json.get("SalaEntrada")-1]=0;
+			}
+
+			if(varRooms[(int)document_json.get("SalaSaida")-1] <= -5) {
+				createLightWarning("saidaMov","",(int)document_json.get("SalaSaida"));
+				varRooms[(int)document_json.get("SalaSaida")-1] = 0;
+			}
+			
+			break;
+		}
 	}
 
 	@Override

@@ -8,10 +8,8 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
@@ -19,11 +17,7 @@ import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 
 import java.util.*;
-import java.util.List;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.io.*;
 import javax.swing.*;
@@ -38,9 +32,9 @@ public class MongoToMqtt implements MqttCallback {
 	static String topic_temps = new String();
 	static String topic_movs = new String();
 	static String topic_lightWarnings = new String();
-	static DBCollection temps;
-	static DBCollection movs;
-	static DBCollection lightWarnings;
+	static MongoCollection<Document> temps;
+	static MongoCollection<Document> movs;
+	static MongoCollection<Document> lightWarnings;
 	static String mongo_user = new String();
 	static String mongo_password = new String();
 	static String mongo_address = new String();
@@ -55,50 +49,56 @@ public class MongoToMqtt implements MqttCallback {
 	static int periodicity = 1;
 
 
-	public static void publishSensor(String leitura) {
-		try {
-			MqttMessage mqtt_message = new MqttMessage();
-			mqtt_message.setPayload(leitura.getBytes());
-			mqttclient.publish(cloud_topic, mqtt_message);
-		} catch (MqttException e) {
-			e.printStackTrace();
-		}
-	}
+//	public static void publishSensor(String leitura) {
+//		try {
+//			MqttMessage mqtt_message = new MqttMessage();
+//			mqtt_message.setPayload(leitura.getBytes());
+//			mqttclient.publish(cloud_topic, mqtt_message);
+//		} catch (MqttException e) {
+//			e.printStackTrace();
+//		}
+//	}
 
 	public static void publishData() throws MqttPersistenceException, MqttException {
-		String mongoURI = new String();
-		mongoURI = "mongodb://";		
-		if (mongo_authentication.equals("true")) mongoURI = mongoURI + mongo_user + ":" + mongo_password + "@";		
-		mongoURI = mongoURI + mongo_address;		
-		if (!mongo_replica.equals("false")) 
-			if (mongo_authentication.equals("true")) mongoURI = mongoURI + "/?replicaSet=" + mongo_replica+"&authSource=admin";
-			else mongoURI = mongoURI + "/?replicaSet=" + mongo_replica;		
-		else
-			if (mongo_authentication.equals("true")) mongoURI = mongoURI  + "/?authSource=admin";
-		MongoClient mongoClient = new MongoClient(new MongoClientURI(mongoURI));
-
+		
+		Document lightWarning = new Document();
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+		String str = format.format(new Date());
+		lightWarning.put("Hora", str);
+		lightWarning.put("Tipo", "MongoDB_up");
+		lightWarning.put("Mensagem", "MongoDB is up!");
+		lightWarning.put("createdAt", new Date());
+		
+		lightWarnings.insertOne(lightWarning);
+		lightWarning.remove("_id");
+		lightWarning.remove("createdAt");
+        documentLabel.append(lightWarning.toJson().toString() + "\n");
+        mqttclient.publish(topic_lightWarnings, lightWarning.toJson().toString().getBytes(), 2, true);
+        
+		
 
 		while (true) {
 			// Select the database to use
-			db = mongoClient.getDatabase(mongo_database);
+			
 			
 			Date currentDate = new Date();
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(currentDate);
-			cal.add(Calendar.SECOND, -periodicity);
+			cal.add(Calendar.SECOND, -3600);
 			Date oneSecondAgo = cal.getTime();
-			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
-			String oneSS = sdf.format(oneSecondAgo);
+		//	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+			String oneSS = format.format(oneSecondAgo);
 	        Document query = new Document("Hora", new Document("$gte", oneSS));
 	        System.out.println("Second ago -> " + oneSS);
 	        MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(query).iterator();
 	        MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(query).iterator();
-	        MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find().iterator();
+	        MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(query).iterator();
 	      
 	        //send temps
 	        while (cursor.hasNext()) {
 	            Document doc = cursor.next();
 	            doc.remove("_id");
+	            doc.remove("createdAt");
 	            String payload = doc.toJson();
 	            MqttMessage message = new MqttMessage(payload.getBytes());
 	            documentLabel.append(message.toString() + "\n");
@@ -108,6 +108,7 @@ public class MongoToMqtt implements MqttCallback {
 	        while (cursor_1.hasNext()) {
 	            Document doc = cursor_1.next();
 	            doc.remove("_id");
+	            doc.remove("createdAt");
 	            String payload = doc.toJson();
 	            MqttMessage message = new MqttMessage(payload.getBytes());
 	            documentLabel.append(message.toString() + "\n");
@@ -117,6 +118,7 @@ public class MongoToMqtt implements MqttCallback {
 	        while (cursor_2.hasNext()) {
 	            Document doc = cursor_2.next();
 	            doc.remove("_id");
+	            doc.remove("createdAt");
 	            String payload = doc.toJson();
 	            MqttMessage message = new MqttMessage(payload.getBytes());
 	            documentLabel.append(message.toString() + "\n");
@@ -160,7 +162,7 @@ public class MongoToMqtt implements MqttCallback {
 
 			// Wait for 1 second before retrieving the newest readings and sensor status again
 			try {
-				TimeUnit.SECONDS.sleep(periodicity*5);
+				TimeUnit.SECONDS.sleep(periodicity*30);
 			} catch (InterruptedException e) {
 				System.err.println("Interrupted publish data to mqtt");
 			}
@@ -208,6 +210,7 @@ public class MongoToMqtt implements MqttCallback {
 			String [] aux = cloud_topic.split(",");
 			topic_temps = aux[0];
 			topic_movs = aux[1];
+			topic_lightWarnings = aux[2];
 
 		} catch (Exception e) {
 
@@ -223,12 +226,39 @@ public class MongoToMqtt implements MqttCallback {
 
 	public void connecCloud() {
 		try {
-
-			mqttclient = new MqttClient(cloud_server, MqttClient.generateClientId(), new MemoryPersistence());
+			
+			mqttclient = new MqttClient(cloud_server, "1001");
 			MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
 			// mqttConnectOptions.setUserName(MQTT_USER_NAME);
 			// mqttConnectOptions.setPassword(MQTT_PASSWORD.toCharArray());
+			mqttConnectOptions.setCleanSession(false);
+			
+			DBObject lightWarning = new BasicDBObject();
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+			String str = sdf.format(new Date());
+			lightWarning.put("Hora", str);
+			lightWarning.put("Tipo", "MongoDB_down");
+			lightWarning.put("Mensagem", "MongoDB is down!");
+			String lastWill = lightWarning.toString();
+			mqttConnectOptions.setWill(topic_lightWarnings, lastWill.getBytes(), 2, true);
+			
 			mqttclient.connect(mqttConnectOptions);
+			
+			String mongoURI = new String();
+			mongoURI = "mongodb://";		
+			if (mongo_authentication.equals("true")) mongoURI = mongoURI + mongo_user + ":" + mongo_password + "@";		
+			mongoURI = mongoURI + mongo_address;		
+			if (!mongo_replica.equals("false")) 
+				if (mongo_authentication.equals("true")) mongoURI = mongoURI + "/?replicaSet=" + mongo_replica+"&authSource=admin";
+				else mongoURI = mongoURI + "/?replicaSet=" + mongo_replica;		
+			else
+				if (mongo_authentication.equals("true")) mongoURI = mongoURI  + "/?authSource=admin";
+			MongoClient mongoClient = new MongoClient(new MongoClientURI(mongoURI));
+			db = mongoClient.getDatabase(mongo_database);
+			temps =db.getCollection(mongo_collection); 
+			movs = db.getCollection(mongo_collection_1);
+			lightWarnings = db.getCollection(mongo_collection_2);
+			
 		} catch (MqttException e) {
 			e.printStackTrace();
 		}

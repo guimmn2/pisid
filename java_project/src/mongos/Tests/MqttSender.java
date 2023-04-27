@@ -1,4 +1,4 @@
-package mongos;
+package mongos.Tests;
 
 import javax.swing.*;
 import java.awt.*;
