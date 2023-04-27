@@ -17,6 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import com.google.gson.JsonObject;
@@ -45,8 +46,14 @@ public class MqttToMysql {
 		// --
 
 		// Set up MQTT client
-		MqttClient client = new MqttClient(mqttBroker, MqttClient.generateClientId());
-		client.connect();
+		MqttClient client = new MqttClient(mqttBroker, "5005");
+		MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+		mqttConnectOptions.setUserName("SQL");
+		String aux = "Golfinho";
+		mqttConnectOptions.setPassword(aux.toCharArray());
+		mqttConnectOptions.setCleanSession(false);
+		client.connect(mqttConnectOptions);
+
 		client.subscribe(mqttTopics);
 		// --
 
