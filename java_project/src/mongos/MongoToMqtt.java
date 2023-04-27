@@ -113,7 +113,7 @@ public class MongoToMqtt implements MqttCallback {
 				Document doc = cursor_2.next();
 				doc.remove("createdAt");
 
-				if(doc.get("Tipo").equals("MongoDB_up")) {
+				if(doc.get("Tipo").equals("MongoDB_up") && cursor_2.hasNext()) {
 					cursor_2.next();
 				} else {
 					String payload = doc.toJson();
