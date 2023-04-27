@@ -306,7 +306,6 @@ public class CloudToMongo implements MqttCallback {
 
 			if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
 				documentLabel.append("Message Discarded SENSOR\n");
-				discardMessage(Integer.parseInt(sensor[1]), message);
 				return;
 			}
 
