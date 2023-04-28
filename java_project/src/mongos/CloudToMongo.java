@@ -99,8 +99,8 @@ public class CloudToMongo implements MqttCallback {
 			JOptionPane.showMessageDialog(null, "The CloudToMongo.inifile wasn't found.", "CloudToMongo",
 					JOptionPane.ERROR_MESSAGE);
 		}
-		new CloudToMongo().connecCloud();
 		new CloudToMongo().connectMongo();
+		new CloudToMongo().connecCloud();
 	}
 
 	public void connecCloud() {
@@ -199,10 +199,10 @@ public class CloudToMongo implements MqttCallback {
 				String dateAndTime = hour[1].replace("\"", "").trim().replace("'","");
 
 				if (!dateAndTime.matches("^[0-9: -\\.]*$")) {
-					documentLabel.append("A Hora contém letras\n");
+					documentLabel.append("A Hora cont�m letras\n");
 					String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 					documentLabel.append(
-							"New Message com hora atualizada devido à existência de letras: " + newMessage + "\n");
+							"New Message com hora atualizada devido �exist�ncia de letras: " + newMessage + "\n");
 					message = newMessage;
 				}else {
 					// criamos o objeto dateTime do tipo LocalDateTime para poder mais tarde fazer
@@ -231,8 +231,8 @@ public class CloudToMongo implements MqttCallback {
 							// recebida.
 							// Caso a data da mensagem atual seja anterior à da ultima mensagem recebida,
 							// entao substituímos
-							if (dateTime.compareTo(recentDate) < 0) {
-								documentLabel.append("A data da mensagem é anterior à da mais recente que temos\n");
+							if (dateTime.compareTo(recentDate) < 2) {
+								documentLabel.append("A data da mensagem � anterior �da mais recente que temos\n");
 								String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 								documentLabel.append("New Message com hora atualizada: " + newMessage + "\n");
 								message=newMessage;
@@ -241,17 +241,15 @@ public class CloudToMongo implements MqttCallback {
 					}catch (Exception e) {
 						String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 						documentLabel.append(
-								"New Message com hora atualizada devido à existência de letras: " + newMessage + "\n");
+								"New Message com hora atualizada devido �exist�ncia de letras: " + newMessage + "\n");
 						message = newMessage;
 					}
 				}
 			}
-
 			cleanMsg="";
 			cleanMsg  = message.replace("{", "");
 			cleanMsg  = cleanMsg.replace("}", "");
 			cleanMsg  = cleanMsg.replaceAll(" ", "");
-
 			//Validações para o tópico "pisid_mazetemp"
 			if(topic.equals("pisid_mazetemp")) {
 				validateTemps(cleanMsg, message);
@@ -271,7 +269,6 @@ public class CloudToMongo implements MqttCallback {
 		String fields[] = cleanMsg.split(",");
 		//Verificar se tem os 3 campos certos necessÃ¡rios
 		if(cleanMsg.contains("SalaEntrada") && cleanMsg.contains("SalaSaida") && cleanMsg.contains("Hora")) {
-
 			String[] salaSaida = fields[1].split(":");
 			String[] salaEntrada = fields[2].split(":");
 
@@ -297,8 +294,12 @@ public class CloudToMongo implements MqttCallback {
 			}
 
 
+
+
 			DBObject document_json;
+
 			document_json = (DBObject) JSON.parse(message);
+
 			saveToMongo("movs", document_json);
 
 		}else {
@@ -309,12 +310,12 @@ public class CloudToMongo implements MqttCallback {
 	}
 
 	private void validateTemps(String cleanMsg, String message) {
-
 		String fields[] = cleanMsg.split(",");
 		//Verificar se tem os 3 campos certos necessários
 		if(cleanMsg.contains("Leitura") && cleanMsg.contains("Sensor") && cleanMsg.contains("Hora")){
 			String[] sensor = fields[2].split(":");
 			String[] leitura = fields[1].split(":");
+
 
 			if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
 				documentLabel.append("Message Discarded SENSOR\n");
@@ -334,7 +335,6 @@ public class CloudToMongo implements MqttCallback {
 					discardMessage(Integer.parseInt(sensor[1]), message);
 					return;
 				}
-
 
 				//Verificar se existe alguma letra na segunda parte da leitura, se sim então fazer a média retirando as letras
 				//e deixando só os números existentes (se não houverem numeros existentes a media é 5).
@@ -386,9 +386,10 @@ public class CloudToMongo implements MqttCallback {
 
 			//Validar se temos dados da última mensagem do sensor da mensagem recebida, se tivermos então validar se a variação em relação a essa última leitura é superior a 4.
 			//Se sim descarta
-			if ((lastTempsMessageSensor1 != null && (int) document_json.get("Sensor") == 1 && Math.abs((double) lastTempsMessageSensor1.get("Leitura")
-					- (double) document_json.get("Leitura")) >= 4) || (lastTempsMessageSensor2 != null && (int) document_json.get("Sensor") == 2
-					&& Math.abs((double) lastTempsMessageSensor2.get("Leitura") - (double) document_json.get("Leitura")) >= 4)) {
+			if ((lastTempsMessageSensor1 != null && (int) document_json.get("Sensor") == 1 
+					&& Math.abs(Double.valueOf(lastTempsMessageSensor1.get("Leitura").toString()) - Double.valueOf(document_json.get("Leitura").toString())) >= 4)
+					|| (lastTempsMessageSensor2 != null && (int) document_json.get("Sensor") == 2
+					&& Math.abs(Double.valueOf(lastTempsMessageSensor2.get("Leitura").toString()) - Double.valueOf(document_json.get("Leitura").toString())) >= 4)) {
 
 				documentLabel.append("Message Discarded IMPOSSIBLE TEMP VAR\n");
 				discardMessage((int)(document_json.get("Sensor")), message);
@@ -452,21 +453,21 @@ public class CloudToMongo implements MqttCallback {
 		case "rapVar":
 			lightWarning.put("Tipo", "light_temp");		
 			lightWarning.put("Sensor", SensorOrRoom);
-			lightWarning.put("Mensagem", "Rápida variação da temperatura registada no sensor " + SensorOrRoom +".");
+			lightWarning.put("Mensagem", "R�pida varia��o da temperatura registada no sensor " + SensorOrRoom +".");
 			documentLabel.append("Created LightWarning light_temp\n");
 			break;
 
 		case "entMov":
 			lightWarning.put("Tipo", "light_mov");
 			lightWarning.put("Sala", SensorOrRoom);
-			lightWarning.put("Mensagem", "Rápida entrada de ratos registada na sala " + SensorOrRoom+".");
+			lightWarning.put("Mensagem", "R�pida entrada de ratos registada na sala " + SensorOrRoom+".");
 			documentLabel.append("Created LightWarning light_mov\n");
 			break;
 
 		case "saidaMov":
 			lightWarning.put("Tipo", "light_mov");
 			lightWarning.put("Sala", SensorOrRoom);
-			lightWarning.put("Mensagem", "Rápida saída de ratos registada na sala " + SensorOrRoom+".");
+			lightWarning.put("Mensagem", "R�pida sa�da de ratos registada na sala " + SensorOrRoom+".");
 			documentLabel.append("Created LightWarning light_mov\n");
 			break;
 
@@ -479,7 +480,7 @@ public class CloudToMongo implements MqttCallback {
 		case "probAv":
 			lightWarning.put("Tipo", "avaria");
 			lightWarning.put("Sensor", SensorOrRoom);
-			lightWarning.put("Mensagem", "Provável avaria no sensor "+ SensorOrRoom + ".");
+			lightWarning.put("Mensagem", "Prov�vel avaria no sensor "+ SensorOrRoom + ".");
 			documentLabel.append("Created LightWarning avaria\n");
 			break;
 
@@ -499,9 +500,11 @@ public class CloudToMongo implements MqttCallback {
 	private void saveToMongo(String collection, DBObject document_json) {
 		mostRecentDate = document_json.get("Hora").toString();
 		document_json.put("createdAt", new Date());
+		document_json.put("sent",0);
+
 		switch(collection) {
 
-		case "temps": 
+		case "temps":
 			discardCounters[(int)document_json.get("Sensor")] = 0;
 			alterVarCounters("sensor", document_json);
 
@@ -509,21 +512,24 @@ public class CloudToMongo implements MqttCallback {
 				lastTempsMessageSensor1 = document_json;
 			}else
 				lastTempsMessageSensor2 = document_json;
-
 			temps.insert(document_json);
+
 			break;
 
-		case "movs": movs.insert(document_json);
-		discardCounters[0] = 0;
+		case "movs": 
 
-		if(document_json.get("SalaEntrada").equals(0) && document_json.get("SalaSaida").equals(0)) {
+			movs.insert(document_json);
+
+
+			discardCounters[0] = 0;	
+			if(document_json.get("SalaEntrada").equals(0) && document_json.get("SalaSaida").equals(0)) {
+				lastMovsMessage = document_json;
+				break;
+			}
+
+			alterVarCounters("room", document_json);
 			lastMovsMessage = document_json;
 			break;
-		}
-
-		alterVarCounters("room", document_json);
-		lastMovsMessage = document_json;
-		break;
 
 		case "lightWarnings": lightWarnings.insert(document_json);	
 		break;
@@ -536,16 +542,12 @@ public class CloudToMongo implements MqttCallback {
 		switch(type) {
 		case "sensor":
 			double diff = 0;
-			documentLabel.append("Antes do equals\n");
 			if(document_json.get("Sensor").equals(1)) {
-				documentLabel.append("Antes de verificar se o sensor 1 � null\n");
 				if(lastTempsMessageSensor1 == null) break;
-				diff =  (double)document_json.get("Leitura") - (double)lastTempsMessageSensor1.get("Leitura");
+				diff = Double.valueOf(document_json.get("Leitura").toString()) - Double.valueOf(lastTempsMessageSensor1.get("Leitura").toString());
 			}else {
-				documentLabel.append("Antes de verificar se o sensor 2 � null\n");
-				documentLabel.append("Message sensor 2\n" + lastTempsMessageSensor2);
 				if(lastTempsMessageSensor2 == null) break;
-				diff =  (double)document_json.get("Leitura") - (double)lastTempsMessageSensor2.get("Leitura");
+				diff =  Double.valueOf(document_json.get("Leitura").toString() )- Double.valueOf(lastTempsMessageSensor2.get("Leitura").toString());
 			}
 			documentLabel.append("Depois de verificar cenas dos sensores\n");
 
@@ -567,17 +569,17 @@ public class CloudToMongo implements MqttCallback {
 		case "room":
 			long currentTime = System.currentTimeMillis();
 			for (int i = 0; i < 14; i++) {
-				System.out.println("i: "+lastUpdateTime[i]);
+				//System.out.println("i: "+lastUpdateTime[i]);
 				if (varRooms[i] > 0 && currentTime - lastUpdateTime[i] > RESET_TIME_MS) {
 					varRooms[i] = 0;
-					System.out.printf("Counter for index %d has been reset.%n", i);
+					//System.out.printf("Counter for index %d has been reset.%n", i);
 				}
 			}
 
 			varRooms[(int)document_json.get("SalaEntrada")-1]++;
-			System.out.println(varRooms[(int)document_json.get("SalaEntrada")-1]);
+			//System.out.println(varRooms[(int)document_json.get("SalaEntrada")-1]);
 			varRooms[(int)document_json.get("SalaSaida")-1]--;
-			System.out.println(varRooms[(int)document_json.get("SalaSaida")-1]);
+			//System.out.println(varRooms[(int)document_json.get("SalaSaida")-1]);
 
 			lastUpdateTime[(int)document_json.get("SalaEntrada")-1] = System.currentTimeMillis();
 			lastUpdateTime[(int)document_json.get("SalaSaida")-1] = System.currentTimeMillis();

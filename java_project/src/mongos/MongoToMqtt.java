@@ -15,6 +15,8 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import static com.mongodb.client.model.Filters.eq;
+
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -70,33 +72,27 @@ public class MongoToMqtt implements MqttCallback {
 			// Select the database to use
 
 
-			Date currentDate = new Date();
-			Calendar cal = Calendar.getInstance();
-			cal.setTime(currentDate);
-			cal.add(Calendar.SECOND, -3600);
-			Date oneSecondAgo = cal.getTime();
-			//	SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
-			String oneSS = format.format(oneSecondAgo);
-			Document query = new Document("Hora", new Document("$gte", oneSS));
-			System.out.println("Second ago -> " + oneSS);
-			MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(query).iterator();
-			MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(query).iterator();
-			MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(query).iterator();
+			MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(eq("sent", 0)).iterator();
+			MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(eq("sent", 0)).iterator();
+			MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(eq("sent", 0)).iterator();
 
 			//send temps
 			while (cursor.hasNext()) {
 				Document doc = cursor.next();
 				doc.remove("createdAt");
+				doc.remove("sent");
 				String payload = doc.toJson();
 				documentLabel.append(payload.toString() + "\n");
 				mqttclient.publish(topic_temps, payload.getBytes(), 1, false);
+				doc.put("sent", 1);
+				db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
 			}
 
 			//send movs
 			while (cursor_1.hasNext()) {
 				Document doc = cursor_1.next();
 				doc.remove("createdAt");
-
+				doc.remove("sent");
 				if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
 					String payload = doc.toJson();
 					documentLabel.append(payload.toString() + "\n");
@@ -106,12 +102,16 @@ public class MongoToMqtt implements MqttCallback {
 					documentLabel.append(payload.toString() + "\n");
 					mqttclient.publish(topic_movs, payload.getBytes(), 1, false);
 				}
+				doc.put("sent", 1);
+				db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
 			}
 
 			//send lightWarnings
 			while (cursor_2.hasNext()) {
 				Document doc = cursor_2.next();
 				doc.remove("createdAt");
+				doc.remove("sent");
+
 
 				if(doc.get("Tipo").equals("MongoDB_up") && cursor_2.hasNext()) {
 					cursor_2.next();
@@ -120,11 +120,14 @@ public class MongoToMqtt implements MqttCallback {
 					documentLabel.append(payload.toString() + "\n");
 					mqttclient.publish(topic_lightWarnings, payload.getBytes(), 2, false);
 				}
+				doc.put("sent", 1);
+				db.getCollection(mongo_collection_2).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+
 			}
 
 			// Wait for 1 second before retrieving the newest readings and sensor status again
 			try {
-				TimeUnit.SECONDS.sleep(periodicity*30);
+				TimeUnit.SECONDS.sleep(periodicity);
 			} catch (InterruptedException e) {
 				System.err.println("Interrupted publish data to mqtt");
 			}
