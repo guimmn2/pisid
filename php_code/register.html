@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Register Investigator</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+    <h1>Register Investigator</h1>
+    <form action="register.php" method="post" autocomplete="off">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required >
+        <br>
+        <label for="phone">Phone Number</label>
+        <input type="text" id="phone" name="phone" pattern="[0-9]{9}">
+        <br>
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email">
+        <br>
+        <label for="type">Type</label>
+        <select name="type" id="type">
+            <option value="inv">Investigador</option> <!--n sei se o admin app pode criar outros tipos de user, se for apenas investigador n é necessario o select option-->>
+        </select>
+        <br>
+        <input type="submit" value="Submit">
+    </form>
+</body>
+
+</html>
