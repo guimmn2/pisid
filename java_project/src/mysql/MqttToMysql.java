@@ -1,6 +1,8 @@
 package mysql;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -25,129 +27,83 @@ import com.google.gson.JsonParser;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
-public class MqttToMysql {
+import javax.swing.*;
+import org.eclipse.paho.client.mqttv3.*;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
-	private static String mqttBroker;
-	private static String[] mqttTopics;
+@SuppressWarnings("serial")
+public class MqttToMysql extends JFrame implements MqttCallback {
+
+	private JTextArea textArea;
 	private static String dbUrl;
 	private static String dbUser;
 	private static String dbPassword;
 	private static final int N_TABLES_TO_WRITE = 3;
 	private static final int MQTT_MESSAGE_QUEUE_SIZE = 1000;
 
-	public static void main(String[] args) throws Exception {
+	static BlockingQueue<String> temperatureQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
+	static BlockingQueue<String> movementQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
+	static BlockingQueue<String> alertsQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
 
-		Properties p = new Properties();
+	static HikariDataSource dataSource;
 
-		// get MQTT configs from .ini file
-		p.load(new FileInputStream("config_files/ReceiveCloud.ini"));
-		mqttBroker = p.getProperty("cloud_server");
-		mqttTopics = p.getProperty("cloud_topic").split(",");
-		// --
+	public MqttToMysql() throws FileNotFoundException, IOException {
+		super("MQTT Receiver");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setSize(400, 300);
 
-		// Set up MQTT client
-		MqttClient client = new MqttClient(mqttBroker, "5005");
-		MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-		mqttConnectOptions.setUserName("SQL");
-		String aux = "Golfinho";
-		mqttConnectOptions.setPassword(aux.toCharArray());
-		mqttConnectOptions.setCleanSession(false);
-		client.connect(mqttConnectOptions);
+		// Create the text area
+		textArea = new JTextArea();
 
-		client.subscribe(mqttTopics);
-		// --
+		JScrollPane scrollPane = new JScrollPane(textArea);
+		scrollPane.setAutoscrolls(true);
+		add(scrollPane);
 
-		// get SQL configs from .ini file
-		p.load(new FileInputStream("config_files/WriteMysql.ini"));
-		dbUrl = p.getProperty("sql_database_connection_to");
-		dbPassword = p.getProperty("sql_database_password_to");
-		dbUser = p.getProperty("sql_database_user_to");
-		// --
+		// Connect to the MQTT broker
+		String broker = "tcp://broker.mqtt-dashboard.com:1883";
+		String clientId = "5005";
+		MemoryPersistence persistence = new MemoryPersistence();
+		try {
+			MqttClient mqttClient = new MqttClient(broker, clientId, persistence);
+			mqttClient.setCallback(this);
+			MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+			mqttConnectOptions.setUserName("SQL");
+			String aux = "Golfinho";
+			mqttConnectOptions.setPassword(aux.toCharArray());
+			mqttConnectOptions.setCleanSession(false);
+			mqttClient.connect(mqttConnectOptions);
 
-		// Set up HikariCP connection pool
-		HikariConfig config = new HikariConfig();
+			// Subscribe to three MQTT topics
+			mqttClient.subscribe("lightWarnings");
+			mqttClient.subscribe("readings/temps");
+			mqttClient.subscribe("readings/movs");
 
-		config.setJdbcUrl(dbUrl);
-		config.setUsername(dbUser);
-		config.setPassword(dbPassword);
-		config.setMaximumPoolSize(N_TABLES_TO_WRITE);
-		HikariDataSource dataSource = new HikariDataSource(config);
-		// --
+			// get SQL configs from .ini file
+			Properties p = new Properties();
+			p.load(new FileInputStream("config_files/WriteMysql.ini"));
+			dbUrl = p.getProperty("sql_database_connection_to");
+			dbPassword = p.getProperty("sql_database_password_to");
+			dbUser = p.getProperty("sql_database_user_to");
+			// --
 
-		// Set up message queues for each topic
-		BlockingQueue<String> temperatureQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
-		BlockingQueue<String> movementQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
-		BlockingQueue<String> alertsQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
-		// --
+			// Set up HikariCP connection pool
+			HikariConfig config = new HikariConfig();
 
-		// Set up message listener
-		client.setCallback(new MqttCallback() {
+			config.setJdbcUrl(dbUrl);
+			config.setUsername(dbUser);
+			config.setPassword(dbPassword);
+			config.setMaximumPoolSize(N_TABLES_TO_WRITE);
+			dataSource = new HikariDataSource(config);
 
-			public void connectionLost(Throwable throwable) {
-				// handle losing connection
-			}
+		} catch (MqttException e) {
+			e.printStackTrace();
+		}
 
-			public void messageArrived(String topic, MqttMessage mqttMessage) throws InterruptedException {
-				String message = new String(mqttMessage.getPayload());
-				switch (topic) {
-				case "readings/temp": {
-					temperatureQueue.put(message);
-					break;
-				}
-				case "readings/mov": {
-					movementQueue.put(message);
-					break;
-				}
-				case "lightWarnings": {
-					alertsQueue.put(message);
-					break;
-				}
-				default:
-					throw new IllegalArgumentException("Unexpected value: " + topic);
-				}
-			}
+		setVisible(true);
+	}
 
-			public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-				// handle delivery complete for certain messages ?
-			}
-		});
-
-		// temperature thread
-
-		new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-				try (Connection conn = dataSource.getConnection()) {
-
-					while (true) {
-						String message = temperatureQueue.take();
-						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
-
-						String id = objMSG.get("_id").getAsString();
-						String time = objMSG.get("Hora").getAsString();
-						double reading = objMSG.get("Leitura").getAsDouble();
-						int sensor = objMSG.get("Sensor").getAsInt();
-						try {
-							CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?,?)}");
-							cs.setString(1, id);
-							cs.setInt(2, sensor);
-							cs.setTimestamp(3, Timestamp.valueOf(time));
-							cs.setDouble(4, reading);
-							System.out.println("Debug Temp: " + message);
-
-							cs.executeUpdate();
-						} catch (SQLException e) {
-							System.err.println("Aviso: Erro escrita da temperatura");
-						}
-					}
-
-				} catch (InterruptedException | SQLException e) {
-					dataSource.close();
-				}
-			}
-
-		}).start();
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		new MqttToMysql();
 
 		// movement thread
 		new Thread(new Runnable() {
@@ -165,14 +121,14 @@ public class MqttToMysql {
 						String message = movementQueue.take();
 						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
 
-						String id = objMSG.get("_id").getAsString();
+						String id = objMSG.get("_id").getAsJsonObject().get("$oid").getAsString();
 						String time = objMSG.get("Hora").getAsString();
 						int entry = objMSG.get("SalaEntrada").getAsInt();
 						int exit = objMSG.get("SalaSaida").getAsInt();
 
 						roomPairFromMqtt.add(entry);
 						roomPairFromMqtt.add(exit);
-						
+
 						System.out.println("Debug Mov: " + message);
 
 						// ao receber 0-0 faz query à db remota para obter info
@@ -253,6 +209,44 @@ public class MqttToMysql {
 			}
 		}).start();
 
+		// temperature thread
+
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				try (Connection conn = dataSource.getConnection()) {
+
+					while (true) {
+						String message = temperatureQueue.take();
+						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+
+						String id = objMSG.get("_id").getAsJsonObject().get("$oid").getAsString();
+						String time = objMSG.get("Hora").getAsString();
+						double reading = objMSG.get("Leitura").getAsDouble();
+						int sensor = objMSG.get("Sensor").getAsInt();
+						try {
+							CallableStatement cs = conn.prepareCall("{call WriteTemp(?,?,?,?)}");
+							cs.setString(1, id);
+							cs.setInt(2, sensor);
+							cs.setTimestamp(3, Timestamp.valueOf(time));
+							cs.setDouble(4, reading);
+							System.out.println("Debug Temp: " + message);
+
+							cs.executeUpdate();
+						} catch (SQLException e) {
+							e.printStackTrace();
+							System.err.println("Aviso: Erro escrita da temperatura");
+						}
+					}
+
+				} catch (InterruptedException | SQLException e) {
+					dataSource.close();
+				}
+			}
+
+		}).start();
+
 		// alerts thread
 		new Thread(new Runnable() {
 
@@ -271,7 +265,7 @@ public class MqttToMysql {
 						String time = objMSG.get("Hora").getAsString();
 
 						// tipo alerta ligeiro vindo do mongo que usa sensores
-						if (type.equals("light_temp") || type.equals("light_avaria")) {
+						if (type.equals("light_temp") || type.equals("avaria")) {
 
 							int sensor = objMSG.get("Sensor").getAsInt();
 
@@ -282,6 +276,7 @@ public class MqttToMysql {
 								cs.setString(5, type);
 								cs.setString(6, description);
 								cs.executeUpdate();
+								System.out.println("Debug Alert " + message);
 							} catch (SQLException e) {
 								System.err.println("Aviso: Não passou periodicidade alerta");
 							}
@@ -306,21 +301,17 @@ public class MqttToMysql {
 
 						}
 
-						if (type.equals("light_descartada")) {
-
-							Double leitura = objMSG.get("Leitura").getAsDouble();
-							int sensor = objMSG.get("Sensor").getAsInt();
+						if (type.equals("descartada") || type.equals("MongoDB_status")) {
 
 							try {
 								CallableStatement cs = conn.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
 								cs.setTimestamp(1, Timestamp.valueOf(time));
-								cs.setInt(3, sensor);
-								cs.setDouble(4, leitura);
 								cs.setString(5, type);
 								cs.setString(6, description);
 								cs.executeUpdate();
 								System.out.println("Debug Alert: " + message);
 							} catch (SQLException e) {
+								e.printStackTrace();
 								System.err.println("Aviso: Não passou periodicidade alerta");
 							}
 						}
@@ -332,5 +323,39 @@ public class MqttToMysql {
 			}
 		}).start();
 
+	}
+
+	@Override
+	public void connectionLost(Throwable cause) {
+		cause.printStackTrace();
+	}
+
+	@Override
+	public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
+		// Display the received message and topic in the text area
+		textArea.append("Received: " + mqttMessage + "\n");
+		String message = new String(mqttMessage.getPayload());
+		switch (topic) {
+		case "readings/temps": {
+			temperatureQueue.put(message);
+			break;
+		}
+		case "readings/movs": {
+			movementQueue.put(message);
+			break;
+		}
+		case "lightWarnings": {
+			alertsQueue.put(message);
+			break;
+		}
+		default:
+			throw new IllegalArgumentException("Unexpected value: " + topic);
+		}
+
+	}
+
+	@Override
+	public void deliveryComplete(IMqttDeliveryToken token) {
+		// Not used in this example
 	}
 }
