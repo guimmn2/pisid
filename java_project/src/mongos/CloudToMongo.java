@@ -48,9 +48,6 @@ public class CloudToMongo implements MqttCallback {
 	private String mostRecentDate =LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS"));
 	private int[] discardCounters = new int[3];
 
-	private static final long RESET_TIME_MS = 4000;
-	private int[]varRooms = new int[14];
-	private long[]lastUpdateTime = new long[14];
 	private double[]varSensors = new double[2];
 
 	private static void createWindow() {
@@ -199,10 +196,10 @@ public class CloudToMongo implements MqttCallback {
 				String dateAndTime = hour[1].replace("\"", "").trim().replace("'","");
 
 				if (!dateAndTime.matches("^[0-9: -\\.]*$")) {
-					documentLabel.append("A Hora contém letras\n");
+					documentLabel.append("A Hora contï¿½m letras\n");
 					String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 					documentLabel.append(
-							"New Message com hora atualizada devido à existência de letras: " + newMessage + "\n");
+							"New Message com hora atualizada devido ï¿½existï¿½ncia de letras: " + newMessage + "\n");
 					message = newMessage;
 				}else {
 					// criamos o objeto dateTime do tipo LocalDateTime para poder mais tarde fazer
@@ -232,7 +229,7 @@ public class CloudToMongo implements MqttCallback {
 							// Caso a data da mensagem atual seja anterior Ã  da ultima mensagem recebida,
 							// entao substituÃ­mos
 							if (dateTime.compareTo(recentDate) < 2) {
-								documentLabel.append("A data da mensagem é anterior à da mais recente que temos\n");
+								documentLabel.append("A data da mensagem ï¿½ anterior ï¿½da mais recente que temos\n");
 								String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 								documentLabel.append("New Message com hora atualizada: " + newMessage + "\n");
 								message=newMessage;
@@ -241,7 +238,7 @@ public class CloudToMongo implements MqttCallback {
 					}catch (Exception e) {
 						String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 						documentLabel.append(
-								"New Message com hora atualizada devido à existência de letras: " + newMessage + "\n");
+								"New Message com hora atualizada devido ï¿½existï¿½ncia de letras: " + newMessage + "\n");
 						message = newMessage;
 					}
 				}
@@ -332,6 +329,7 @@ public class CloudToMongo implements MqttCallback {
 
 				if(!temperatura[0].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
 					documentLabel.append("Message Discarded READING WITH LETTER BEFORE DOT\n");
+					
 					discardMessage(Integer.parseInt(sensor[1]), message);
 					return;
 				}
@@ -418,8 +416,16 @@ public class CloudToMongo implements MqttCallback {
 	 *				
 	 */
 	private void discardMessage(int type, String message) {
+		
+		message = message.replace("}", "");
+		message = message.replace("{", "");
+		message = message.replace(" ", "");
+		String[] aux = message.split(",");
+		String newMessage = "{" + aux[1] + ", " + aux[2] + "}";
+		
+		
 		if(discardCounters[type] < 3) {
-			createLightWarning("disc", message, 0);
+			createLightWarning("disc", newMessage, 0);
 			discardCounters[type]++;
 		}else {
 			createLightWarning("probAv", "", type);
@@ -451,36 +457,25 @@ public class CloudToMongo implements MqttCallback {
 
 		switch(type) {
 		case "rapVar":
+			System.out.println("OLAAAAAAAAAAAAAAAAAA");
 			lightWarning.put("Tipo", "light_temp");		
 			lightWarning.put("Sensor", SensorOrRoom);
-			lightWarning.put("Mensagem", "Rápida variação da temperatura registada no sensor " + SensorOrRoom +".");
+			lightWarning.put("Mensagem", "Rï¿½pida variaï¿½ï¿½o da temperatura registada no sensor " + SensorOrRoom +".");
 			documentLabel.append("Created LightWarning light_temp\n");
 			break;
 
-		case "entMov":
-			lightWarning.put("Tipo", "light_mov");
-			lightWarning.put("Sala", SensorOrRoom);
-			lightWarning.put("Mensagem", "Rápida entrada de ratos registada na sala " + SensorOrRoom+".");
-			documentLabel.append("Created LightWarning light_mov\n");
-			break;
-
-		case "saidaMov":
-			lightWarning.put("Tipo", "light_mov");
-			lightWarning.put("Sala", SensorOrRoom);
-			lightWarning.put("Mensagem", "Rápida saída de ratos registada na sala " + SensorOrRoom+".");
-			documentLabel.append("Created LightWarning light_mov\n");
-			break;
-
 		case "disc":
+			System.out.println("OLAAAAAAAAAAAAAAAAAA");
 			lightWarning.put("Tipo", "descartada");
 			lightWarning.put("Mensagem", message);
 			documentLabel.append("Created LightWarning descartada\n");
 			break;
 
 		case "probAv":
+			System.out.println("OLAAAAAAAAAAAAAAAAAA");
 			lightWarning.put("Tipo", "avaria");
 			lightWarning.put("Sensor", SensorOrRoom);
-			lightWarning.put("Mensagem", "Provável avaria no sensor "+ SensorOrRoom + ".");
+			lightWarning.put("Mensagem", "Provï¿½vel avaria no sensor "+ SensorOrRoom + ".");
 			documentLabel.append("Created LightWarning avaria\n");
 			break;
 
@@ -565,36 +560,7 @@ public class CloudToMongo implements MqttCallback {
 			}
 
 			break;
-
-		case "room":
-			long currentTime = System.currentTimeMillis();
-			for (int i = 0; i < 14; i++) {
-				//System.out.println("i: "+lastUpdateTime[i]);
-				if (varRooms[i] > 0 && currentTime - lastUpdateTime[i] > RESET_TIME_MS) {
-					varRooms[i] = 0;
-					//System.out.printf("Counter for index %d has been reset.%n", i);
-				}
-			}
-
-			varRooms[(int)document_json.get("SalaEntrada")-1]++;
-			//System.out.println(varRooms[(int)document_json.get("SalaEntrada")-1]);
-			varRooms[(int)document_json.get("SalaSaida")-1]--;
-			//System.out.println(varRooms[(int)document_json.get("SalaSaida")-1]);
-
-			lastUpdateTime[(int)document_json.get("SalaEntrada")-1] = System.currentTimeMillis();
-			lastUpdateTime[(int)document_json.get("SalaSaida")-1] = System.currentTimeMillis();
-
-			if(varRooms[(int)document_json.get("SalaEntrada")-1] >= 5) {
-				createLightWarning("entMov","",(int)document_json.get("SalaEntrada"));
-				varRooms[(int)document_json.get("SalaEntrada")-1]=0;
-			}
-
-			if(varRooms[(int)document_json.get("SalaSaida")-1] <= -5) {
-				createLightWarning("saidaMov","",(int)document_json.get("SalaSaida"));
-				varRooms[(int)document_json.get("SalaSaida")-1] = 0;
-			}
-
-			break;
+			
 		}
 	}
 

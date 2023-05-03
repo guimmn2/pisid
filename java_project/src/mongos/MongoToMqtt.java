@@ -2,6 +2,7 @@ package mongos;
 
 import org.bson.Document;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -56,7 +57,7 @@ public class MongoToMqtt implements MqttCallback {
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
 		String str = format.format(new Date());
 		lightWarning.put("Hora", str);
-		lightWarning.put("Tipo", "MongoDB_up");
+		lightWarning.put("Tipo", "MongoDB_status");
 		lightWarning.put("Mensagem", "MongoDB is up!");
 		lightWarning.put("createdAt", new Date());
 
@@ -77,43 +78,46 @@ public class MongoToMqtt implements MqttCallback {
 			MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(eq("sent", 0)).iterator();
 
 			//send temps
-			while (cursor.hasNext()) {
-				Document doc = cursor.next();
-				doc.remove("createdAt");
-				doc.remove("sent");
-				String payload = doc.toJson();
-				documentLabel.append(payload.toString() + "\n");
-				mqttclient.publish(topic_temps, payload.getBytes(), 1, false);
-				doc.put("sent", 1);
-				db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
-			}
-
-			//send movs
-			while (cursor_1.hasNext()) {
-				Document doc = cursor_1.next();
-				doc.remove("createdAt");
-				doc.remove("sent");
-				if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
-					String payload = doc.toJson();
-					documentLabel.append(payload.toString() + "\n");
-					mqttclient.publish(topic_movs, payload.getBytes(), 1, true);
-				} else {
-					String payload = doc.toJson();
-					documentLabel.append(payload.toString() + "\n");
-					mqttclient.publish(topic_movs, payload.getBytes(), 1, false);
-				}
-				doc.put("sent", 1);
-				db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
-			}
+//			while (cursor.hasNext()) {
+//				Document doc = cursor.next();
+//				doc.remove("createdAt");
+//				doc.remove("sent");
+//				String payload = doc.toJson();
+//				documentLabel.append(payload.toString() + "\n");
+//				mqttclient.publish(topic_temps, payload.getBytes(), 1, false);
+//				doc.put("sent", 1);
+//				db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+//			}
+//
+//			//send movs
+//			while (cursor_1.hasNext()) {
+//				Document doc = cursor_1.next();
+//				doc.remove("createdAt");
+//				doc.remove("sent");
+//				if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
+//					String payload = doc.toJson();
+//					documentLabel.append(payload.toString() + "\n");
+//					mqttclient.publish(topic_movs, payload.getBytes(), 1, true);
+//				} else {
+//					String payload = doc.toJson();
+//					documentLabel.append(payload.toString() + "\n");
+//					mqttclient.publish(topic_movs, payload.getBytes(), 1, false);
+//				}
+//				doc.put("sent", 1);
+//				db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+//			}
 
 			//send lightWarnings
 			while (cursor_2.hasNext()) {
 				Document doc = cursor_2.next();
 				doc.remove("createdAt");
 				doc.remove("sent");
+				doc.remove("_id");
+				
+				
 
 
-				if(doc.get("Tipo").equals("MongoDB_up") && cursor_2.hasNext()) {
+				if(doc.get("Tipo").equals("MongoDB_status") && cursor_2.hasNext()) {
 					cursor_2.next();
 				} else {
 					String payload = doc.toJson();
@@ -122,6 +126,7 @@ public class MongoToMqtt implements MqttCallback {
 				}
 				doc.put("sent", 1);
 				db.getCollection(mongo_collection_2).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+				doc.remove("_id");
 
 			}
 
@@ -193,6 +198,7 @@ public class MongoToMqtt implements MqttCallback {
 		try {
 
 			mqttclient = new MqttClient(cloud_server, "1001");
+			
 			MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
 			mqttConnectOptions.setUserName("Mongo");
 			String aux = "Rats404";
@@ -203,12 +209,18 @@ public class MongoToMqtt implements MqttCallback {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
 			String str = sdf.format(new Date());
 			lightWarning.put("Hora", str);
-			lightWarning.put("Tipo", "MongoDB_down");
+			lightWarning.put("Tipo", "MongoDB_status");
 			lightWarning.put("Mensagem", "MongoDB is down!");
 			String lastWill = lightWarning.toString();
 			mqttConnectOptions.setWill(topic_lightWarnings, lastWill.getBytes(), 2, true);
+			
+			
 
-			mqttclient.connect(mqttConnectOptions);
+			//mqttclient.connect(mqttConnectOptions);
+			
+			IMqttToken token = mqttclient.connectWithResult(mqttConnectOptions);
+			System.out.println(token);
+		    token.waitForCompletion();
 
 			String mongoURI = new String();
 			mongoURI = "mongodb://";		
@@ -232,6 +244,8 @@ public class MongoToMqtt implements MqttCallback {
 
 	@Override
 	public void connectionLost(Throwable cause) {
+		
+		
 	}
 
 	@Override

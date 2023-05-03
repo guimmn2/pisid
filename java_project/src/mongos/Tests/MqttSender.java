@@ -64,7 +64,7 @@ public class MqttSender extends JFrame {
         try {
             MqttMessage mqttMessage = new MqttMessage(message.getBytes());
             mqttMessage.setQos(2);
-            client.publish("test_rats", mqttMessage);
+            client.publish("lightWarnings", mqttMessage);
             textArea.append("Sent: " + message + "\n");
             textField.setText("");
         } catch (MqttException e) {
