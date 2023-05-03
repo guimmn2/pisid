@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 4.9.5deb2
 -- https://www.phpmyadmin.net/
 --
--- Host: 127.0.0.1:3307
--- Generation Time: May 02, 2023 at 11:40 AM
--- Server version: 10.10.2-MariaDB
--- PHP Version: 8.0.26
+-- Host: localhost:3306
+-- Generation Time: May 03, 2023 at 06:54 PM
+-- Server version: 10.3.38-MariaDB-0ubuntu0.20.04.1
+-- PHP Version: 7.4.3-4ubuntu2.18
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -25,8 +26,27 @@ DELIMITER $$
 --
 -- Procedures
 --
-DROP PROCEDURE IF EXISTS `StartNextExp`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `startTime` TIMESTAMP)  NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateUser` (IN `name` VARCHAR(100), IN `email` VARCHAR(50), IN `phone` VARCHAR(12), IN `role` VARCHAR(50), IN `password` VARCHAR(50))  NO SQL
+BEGIN
+    DECLARE `_HOST` CHAR(14) DEFAULT '@''localhost''';
+    SET `email` := CONCAT('''', REPLACE(TRIM(`email`), CHAR(39), CONCAT(CHAR(92), CHAR(39))), ''''),
+    `password` := CONCAT('''', REPLACE(`password`, CHAR(39), CONCAT(CHAR(92), CHAR(39))), '''');
+    SET @`sql` := CONCAT('CREATE USER ', `email`, `_HOST`, ' IDENTIFIED BY ', `password`);
+    PREPARE `stmt` FROM @`sql`;
+    EXECUTE `stmt`;
+    SET @`sql` := CONCAT('GRANT ', `role`, ' TO ', `email`, `_HOST`);
+    PREPARE `stmt` FROM @`sql`;
+    EXECUTE `stmt`;
+    SET @`sql` := CONCAT('SET DEFAULT ROLE ', `role`, ' FOR ', `email`, `_HOST`);
+    PREPARE `stmt` FROM @`sql`;
+    EXECUTE `stmt`;
+    DEALLOCATE PREPARE `stmt`;
+    FLUSH PRIVILEGES;
+    INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (`name`, `phone`, `role`, `email`);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `startTime` TIMESTAMP)  NO SQL
+BEGIN
 
 DECLARE i INT DEFAULT 2;
 DECLARE nrRooms, id_exp, id_exists INT;
@@ -54,16 +74,15 @@ END IF;
 
 END$$
 
-DROP PROCEDURE IF EXISTS `TerminateOngoingExp`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `TerminateOngoingExp` (IN `endTime` TIMESTAMP, IN `endReason` VARCHAR(50))  NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `TerminateOngoingExp` (IN `endTime` TIMESTAMP, IN `endReason` VARCHAR(50))  NO SQL
+BEGIN
 
 UPDATE parametrosadicionais
 SET parametrosadicionais.DataHoraFim = endTime, parametrosadicionais.MotivoTermino = endReason
 WHERE parametrosadicionais.IDExperiencia = GetOngoingExpId();
 END$$
 
-DROP PROCEDURE IF EXISTS `WriteAlert`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteAlert` (IN `hour` TIMESTAMP, IN `room` INT, IN `sensor` INT, IN `sensor_reading` DECIMAL(4,2), IN `type` VARCHAR(50), IN `message` VARCHAR(50), IN `writtenHour` TIMESTAMP)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteAlert` (IN `hour` TIMESTAMP, IN `room` INT, IN `sensor` INT, IN `sensor_reading` DECIMAL(4,2), IN `type` VARCHAR(50), IN `message` VARCHAR(50), IN `writtenHour` TIMESTAMP)  BEGIN
 
 IF OngoingExp() THEN
 	INSERT INTO alerta (hora, sala, sensor, leitura, tipo, mensagem, horaescrita, IDExperiencia)
@@ -71,8 +90,7 @@ IF OngoingExp() THEN
 END IF;
 END$$
 
-DROP PROCEDURE IF EXISTS `WriteConfig`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteConfig` (IN `set_temperature` DECIMAL(4,2), IN `open_doors` INT, IN `nrRooms` INT)   BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteConfig` (IN `set_temperature` DECIMAL(4,2), IN `open_doors` INT, IN `nrRooms` INT)  BEGIN
 
 DECLARE configExists INT;
 
@@ -92,8 +110,8 @@ ELSE
 END IF;
 END$$
 
-DROP PROCEDURE IF EXISTS `WriteMov`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteMov` (IN `id_mongo` VARCHAR(100), IN `hour` TIMESTAMP, IN `entryRoom` INT, IN `exitRoom` INT)  NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteMov` (IN `id_mongo` VARCHAR(100), IN `hour` TIMESTAMP, IN `entryRoom` INT, IN `exitRoom` INT)  NO SQL
+BEGIN
 
 DECLARE duplicate INT;
 
@@ -112,8 +130,8 @@ IF duplicate = 0 THEN
 END IF;
 END$$
 
-DROP PROCEDURE IF EXISTS `WriteTemp`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteTemp` (IN `id_mongo` VARCHAR(100), IN `sensor` INT, IN `hour` TIMESTAMP, IN `sensor_reading` DECIMAL(4,2))  NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` PROCEDURE `WriteTemp` (IN `id_mongo` VARCHAR(100), IN `sensor` INT, IN `hour` TIMESTAMP, IN `sensor_reading` DECIMAL(4,2))  NO SQL
+BEGIN
 
 DECLARE duplicate INT;
 
@@ -132,8 +150,8 @@ END$$
 --
 -- Functions
 --
-DROP FUNCTION IF EXISTS `GetOngoingExpId`$$
-CREATE DEFINER=`root`@`localhost` FUNCTION `GetOngoingExpId` () RETURNS INT(11) NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` FUNCTION `GetOngoingExpId` () RETURNS INT(11) NO SQL
+BEGIN
 	-- id da exp a decorrer
     DECLARE ongoing_exp_id INT;
     
@@ -149,8 +167,8 @@ CREATE DEFINER=`root`@`localhost` FUNCTION `GetOngoingExpId` () RETURNS INT(11) 
     END IF;
 END$$
 
-DROP FUNCTION IF EXISTS `GetRatsInRoom`$$
-CREATE DEFINER=`root`@`localhost` FUNCTION `GetRatsInRoom` (`nrRoom` INT) RETURNS INT(11) NO SQL BEGIN
+CREATE DEFINER=`root`@`localhost` FUNCTION `GetRatsInRoom` (`nrRoom` INT) RETURNS INT(11) NO SQL
+BEGIN
 
 DECLARE nr_rats INT;
 
@@ -162,8 +180,8 @@ RETURN nr_rats;
 
 END$$
 
-DROP FUNCTION IF EXISTS `OngoingExp`$$
-CREATE DEFINER=`root`@`localhost` FUNCTION `OngoingExp` () RETURNS TINYINT(1) NO SQL BEGIN-- id da exp a decorrer
+CREATE DEFINER=`root`@`localhost` FUNCTION `OngoingExp` () RETURNS TINYINT(1) NO SQL
+BEGIN-- id da exp a decorrer
     DECLARE ongoing_exp_id INT;
     SELECT parametrosadicionais.IDExperiencia INTO ongoing_exp_id
     FROM parametrosadicionais 
@@ -185,9 +203,8 @@ DELIMITER ;
 -- Table structure for table `alerta`
 --
 
-DROP TABLE IF EXISTS `alerta`;
-CREATE TABLE IF NOT EXISTS `alerta` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `alerta` (
+  `id` int(11) NOT NULL,
   `hora` timestamp NOT NULL DEFAULT current_timestamp(),
   `sala` int(11) DEFAULT NULL,
   `sensor` int(11) DEFAULT NULL,
@@ -195,10 +212,8 @@ CREATE TABLE IF NOT EXISTS `alerta` (
   `tipo` varchar(20) DEFAULT NULL,
   `mensagem` varchar(100) DEFAULT NULL,
   `horaescrita` timestamp NOT NULL DEFAULT current_timestamp(),
-  `IDExperiencia` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `IDExperiencia` (`IDExperiencia`)
-) ENGINE=InnoDB AUTO_INCREMENT=432611 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `IDExperiencia` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `alerta`
@@ -210,7 +225,6 @@ INSERT INTO `alerta` (`id`, `hora`, `sala`, `sensor`, `leitura`, `tipo`, `mensag
 --
 -- Triggers `alerta`
 --
-DROP TRIGGER IF EXISTS `AlertPeriodicity`;
 DELIMITER $$
 CREATE TRIGGER `AlertPeriodicity` BEFORE INSERT ON `alerta` FOR EACH ROW BEGIN
 
@@ -292,7 +306,6 @@ END IF;
 END
 $$
 DELIMITER ;
-DROP TRIGGER IF EXISTS `TerminateExpUrgentAlert`;
 DELIMITER $$
 CREATE TRIGGER `TerminateExpUrgentAlert` AFTER INSERT ON `alerta` FOR EACH ROW BEGIN
 
@@ -310,13 +323,11 @@ DELIMITER ;
 -- Table structure for table `configuracaolabirinto`
 --
 
-DROP TABLE IF EXISTS `configuracaolabirinto`;
-CREATE TABLE IF NOT EXISTS `configuracaolabirinto` (
+CREATE TABLE `configuracaolabirinto` (
   `IDConfiguracao` int(11) NOT NULL DEFAULT 0,
   `temperaturaprogramada` decimal(4,2) DEFAULT NULL,
   `segundosaberturaportaexterior` int(11) DEFAULT NULL,
-  `numerosalas` int(11) DEFAULT NULL,
-  PRIMARY KEY (`IDConfiguracao`)
+  `numerosalas` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -332,20 +343,17 @@ INSERT INTO `configuracaolabirinto` (`IDConfiguracao`, `temperaturaprogramada`, 
 -- Table structure for table `experiencia`
 --
 
-DROP TABLE IF EXISTS `experiencia`;
-CREATE TABLE IF NOT EXISTS `experiencia` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `descricao` text CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
-  `investigador` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
+CREATE TABLE `experiencia` (
+  `id` int(11) NOT NULL,
+  `descricao` text CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `investigador` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
   `DataRegisto` timestamp NULL DEFAULT current_timestamp(),
   `numeroratos` int(11) DEFAULT NULL,
   `limiteratossala` int(11) DEFAULT NULL,
   `segundossemmovimento` int(11) DEFAULT NULL,
   `temperaturaideal` decimal(4,2) DEFAULT NULL,
-  `variacaotemperaturamaxima` decimal(4,2) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `investigador` (`investigador`)
-) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `variacaotemperaturamaxima` decimal(4,2) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `experiencia`
@@ -359,7 +367,6 @@ INSERT INTO `experiencia` (`id`, `descricao`, `investigador`, `DataRegisto`, `nu
 --
 -- Triggers `experiencia`
 --
-DROP TRIGGER IF EXISTS `SetParameters`;
 DELIMITER $$
 CREATE TRIGGER `SetParameters` AFTER INSERT ON `experiencia` FOR EACH ROW BEGIN
 
@@ -378,15 +385,12 @@ DELIMITER ;
 -- Table structure for table `medicoespassagens`
 --
 
-DROP TABLE IF EXISTS `medicoespassagens`;
-CREATE TABLE IF NOT EXISTS `medicoespassagens` (
-  `IDMongo` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+CREATE TABLE `medicoespassagens` (
+  `IDMongo` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `hora` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `salaentrada` int(11) DEFAULT NULL,
   `salasaida` int(11) DEFAULT NULL,
-  `IDExperiencia` int(11) DEFAULT NULL,
-  PRIMARY KEY (`IDMongo`),
-  KEY `IDExperiencia` (`IDExperiencia`)
+  `IDExperiencia` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -403,7 +407,6 @@ INSERT INTO `medicoespassagens` (`IDMongo`, `hora`, `salaentrada`, `salasaida`, 
 --
 -- Triggers `medicoespassagens`
 --
-DROP TRIGGER IF EXISTS `CheckRatsMov`;
 DELIMITER $$
 CREATE TRIGGER `CheckRatsMov` BEFORE INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
 
@@ -419,7 +422,6 @@ END IF;
 END
 $$
 DELIMITER ;
-DROP TRIGGER IF EXISTS `RatsCount`;
 DELIMITER $$
 CREATE TRIGGER `RatsCount` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
 
@@ -475,7 +477,6 @@ END IF;
 END
 $$
 DELIMITER ;
-DROP TRIGGER IF EXISTS `StartExp`;
 DELIMITER $$
 CREATE TRIGGER `StartExp` AFTER INSERT ON `medicoespassagens` FOR EACH ROW BEGIN
 
@@ -521,12 +522,10 @@ DELIMITER ;
 -- Table structure for table `medicoessala`
 --
 
-DROP TABLE IF EXISTS `medicoessala`;
-CREATE TABLE IF NOT EXISTS `medicoessala` (
+CREATE TABLE `medicoessala` (
   `IDExperiencia` int(11) NOT NULL,
   `numeroratosfinal` int(11) DEFAULT NULL,
-  `sala` int(11) NOT NULL,
-  PRIMARY KEY (`IDExperiencia`,`sala`)
+  `sala` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -565,7 +564,6 @@ INSERT INTO `medicoessala` (`IDExperiencia`, `numeroratosfinal`, `sala`) VALUES
 --
 -- Triggers `medicoessala`
 --
-DROP TRIGGER IF EXISTS `CreateMovAlert`;
 DELIMITER $$
 CREATE TRIGGER `CreateMovAlert` AFTER UPDATE ON `medicoessala` FOR EACH ROW BEGIN
 
@@ -616,21 +614,17 @@ DELIMITER ;
 -- Table structure for table `medicoestemperatura`
 --
 
-DROP TABLE IF EXISTS `medicoestemperatura`;
-CREATE TABLE IF NOT EXISTS `medicoestemperatura` (
-  `IDMongo` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
+CREATE TABLE `medicoestemperatura` (
+  `IDMongo` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `hora` timestamp NOT NULL DEFAULT current_timestamp(),
   `leitura` decimal(4,2) DEFAULT NULL,
   `sensor` int(11) DEFAULT NULL,
-  `IDExperiencia` int(11) DEFAULT NULL,
-  PRIMARY KEY (`IDMongo`),
-  KEY `IDExperiencia` (`IDExperiencia`)
+  `IDExperiencia` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Triggers `medicoestemperatura`
 --
-DROP TRIGGER IF EXISTS `CreateTempAlert`;
 DELIMITER $$
 CREATE TRIGGER `CreateTempAlert` AFTER INSERT ON `medicoestemperatura` FOR EACH ROW BEGIN
   DECLARE ongoing_exp_id, alertExists, can_insert INT;
@@ -695,13 +689,10 @@ DELIMITER ;
 -- Table structure for table `odoresexperiencia`
 --
 
-DROP TABLE IF EXISTS `odoresexperiencia`;
-CREATE TABLE IF NOT EXISTS `odoresexperiencia` (
+CREATE TABLE `odoresexperiencia` (
   `sala` int(11) NOT NULL,
   `IDExperiencia` int(11) NOT NULL,
-  `codigoodor` int(11) DEFAULT NULL,
-  PRIMARY KEY (`sala`,`IDExperiencia`),
-  KEY `idexperiencia` (`IDExperiencia`)
+  `codigoodor` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -710,15 +701,13 @@ CREATE TABLE IF NOT EXISTS `odoresexperiencia` (
 -- Table structure for table `parametrosadicionais`
 --
 
-DROP TABLE IF EXISTS `parametrosadicionais`;
-CREATE TABLE IF NOT EXISTS `parametrosadicionais` (
+CREATE TABLE `parametrosadicionais` (
   `IDExperiencia` int(11) NOT NULL,
   `DataHoraInicio` timestamp NULL DEFAULT NULL,
   `DataHoraFim` timestamp NULL DEFAULT NULL,
   `MotivoTermino` varchar(50) DEFAULT NULL,
   `DataHoraPortasExtAbertas` timestamp NULL DEFAULT NULL,
-  `PeriodicidadeAlerta` double DEFAULT 30,
-  PRIMARY KEY (`IDExperiencia`)
+  `PeriodicidadeAlerta` double DEFAULT 30
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -733,7 +722,6 @@ INSERT INTO `parametrosadicionais` (`IDExperiencia`, `DataHoraInicio`, `DataHora
 --
 -- Triggers `parametrosadicionais`
 --
-DROP TRIGGER IF EXISTS `CheckIfRatsDied`;
 DELIMITER $$
 CREATE TRIGGER `CheckIfRatsDied` AFTER UPDATE ON `parametrosadicionais` FOR EACH ROW BEGIN
 
@@ -758,13 +746,10 @@ DELIMITER ;
 -- Table structure for table `substanciasexperiencia`
 --
 
-DROP TABLE IF EXISTS `substanciasexperiencia`;
-CREATE TABLE IF NOT EXISTS `substanciasexperiencia` (
+CREATE TABLE `substanciasexperiencia` (
   `numeroratos` int(11) DEFAULT NULL,
-  `codigosubstancia` varchar(5) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  `IDExperiencia` int(11) NOT NULL,
-  PRIMARY KEY (`codigosubstancia`,`IDExperiencia`),
-  KEY `idexperiencia` (`IDExperiencia`)
+  `codigosubstancia` varchar(5) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `IDExperiencia` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -773,14 +758,105 @@ CREATE TABLE IF NOT EXISTS `substanciasexperiencia` (
 -- Table structure for table `utilizador`
 --
 
-DROP TABLE IF EXISTS `utilizador`;
-CREATE TABLE IF NOT EXISTS `utilizador` (
-  `nome` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
-  `telefone` varchar(12) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
-  `tipo` varchar(3) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
-  `email` varchar(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL,
-  PRIMARY KEY (`email`)
+CREATE TABLE `utilizador` (
+  `nome` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `telefone` varchar(12) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `tipo` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `email` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `utilizador`
+--
+
+INSERT INTO `utilizador` (`nome`, `telefone`, `tipo`, `email`) VALUES
+('guidana', '967098356', 'admin', '\'guidana@email.com\'');
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `alerta`
+--
+ALTER TABLE `alerta`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `IDExperiencia` (`IDExperiencia`);
+
+--
+-- Indexes for table `configuracaolabirinto`
+--
+ALTER TABLE `configuracaolabirinto`
+  ADD PRIMARY KEY (`IDConfiguracao`);
+
+--
+-- Indexes for table `experiencia`
+--
+ALTER TABLE `experiencia`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `investigador` (`investigador`);
+
+--
+-- Indexes for table `medicoespassagens`
+--
+ALTER TABLE `medicoespassagens`
+  ADD PRIMARY KEY (`IDMongo`),
+  ADD KEY `IDExperiencia` (`IDExperiencia`);
+
+--
+-- Indexes for table `medicoessala`
+--
+ALTER TABLE `medicoessala`
+  ADD PRIMARY KEY (`IDExperiencia`,`sala`);
+
+--
+-- Indexes for table `medicoestemperatura`
+--
+ALTER TABLE `medicoestemperatura`
+  ADD PRIMARY KEY (`IDMongo`),
+  ADD KEY `IDExperiencia` (`IDExperiencia`);
+
+--
+-- Indexes for table `odoresexperiencia`
+--
+ALTER TABLE `odoresexperiencia`
+  ADD PRIMARY KEY (`sala`,`IDExperiencia`),
+  ADD KEY `idexperiencia` (`IDExperiencia`);
+
+--
+-- Indexes for table `parametrosadicionais`
+--
+ALTER TABLE `parametrosadicionais`
+  ADD PRIMARY KEY (`IDExperiencia`);
+
+--
+-- Indexes for table `substanciasexperiencia`
+--
+ALTER TABLE `substanciasexperiencia`
+  ADD PRIMARY KEY (`codigosubstancia`,`IDExperiencia`),
+  ADD KEY `idexperiencia` (`IDExperiencia`);
+
+--
+-- Indexes for table `utilizador`
+--
+ALTER TABLE `utilizador`
+  ADD PRIMARY KEY (`email`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `alerta`
+--
+ALTER TABLE `alerta`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=432611;
+
+--
+-- AUTO_INCREMENT for table `experiencia`
+--
+ALTER TABLE `experiencia`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- Constraints for dumped tables
