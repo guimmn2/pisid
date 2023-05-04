@@ -11,21 +11,22 @@ import com.mongodb.util.JSON;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.io.*;
 import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
+import javax.swing.text.DefaultCaret;
 
+import java.awt.*;
+
+@SuppressWarnings({ "deprecation"})
 public class CloudToMongo implements MqttCallback {
-	
+
 	private static CloudToMongo instance;
-	
-	MqttClient mqttclient;
+
+	static MqttClient mqttclient;
 	static MongoClient mongoClient;
 	static DB db;
 	static DBCollection temps;
@@ -43,7 +44,7 @@ public class CloudToMongo implements MqttCallback {
 	static String mongo_collection_1 = new String();
 	static String mongo_collection_2 = new String();
 	static String mongo_authentication = new String();
-	static JTextArea documentLabel = new JTextArea("\n");
+	static JTextArea documentLabel = new JTextArea();
 
 	private DBObject lastTempsMessageSensor1;
 	private DBObject lastTempsMessageSensor2;
@@ -52,8 +53,11 @@ public class CloudToMongo implements MqttCallback {
 	private String mostRecentDate =LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS"));
 	private int[] discardCounters = new int[3];
 	private double[]varSensors = new double[2];
-	
+
 	private static LinkedBlockingQueue<Message> messagesReceived;
+	private static Queue<Message> messagesSaved;
+
+	private static JFrame frame;
 
 	public static CloudToMongo getInstance() {
 		if (instance == null) {
@@ -62,29 +66,56 @@ public class CloudToMongo implements MqttCallback {
 		return instance;
 	}
 
+	public LinkedBlockingQueue<Message> getMessagesReceived() {
+		return messagesReceived;
+	}
+
+	public void addMessagesReceived(LinkedBlockingQueue<Message> messagesReceived) {
+		CloudToMongo.messagesReceived.addAll(messagesReceived);
+	}
+
+	public  Queue<Message> getMessagesSaved() {
+		return messagesSaved;
+	}
+
+	public  void addMessagesSaved(Queue<Message> messagesSaved) {
+		CloudToMongo.messagesSaved.addAll(messagesSaved);
+	}
+
 	private static void createWindow() {
-		JFrame frame = new JFrame("Cloud to Mongo");
+		frame = new JFrame("Cloud to Mongo");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		JLabel textLabel = new JLabel("Data from broker: ", SwingConstants.CENTER);
-		textLabel.setPreferredSize(new Dimension(600, 30));
+		JLabel textLabel = new JLabel("CloudToMongo: ", SwingConstants.CENTER);
+		textLabel.setPreferredSize(new Dimension(600, 15));
 		JScrollPane scroll = new JScrollPane(documentLabel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		scroll.setPreferredSize(new Dimension(600, 200));
-		JButton b1 = new JButton("Stop the program");
+		//		JButton b1 = new JButton("Stop the program");
 		frame.getContentPane().add(textLabel, BorderLayout.PAGE_START);
 		frame.getContentPane().add(scroll, BorderLayout.CENTER);
-		frame.getContentPane().add(b1, BorderLayout.PAGE_END);
+		//		frame.getContentPane().add(b1, BorderLayout.PAGE_END);
 		frame.setLocationRelativeTo(null);
 		frame.pack();
 		frame.setVisible(true);
-		b1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent evt) {
-				System.exit(0);
-			}
-		});
+
+		// Get the text area's caret
+		DefaultCaret caret = new DefaultCaret();
+		documentLabel.setCaret(caret);
+
+		// Set the caret to always scroll to the bottom of the text area
+		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		//		b1.addActionListener(new ActionListener() {
+		//			public void actionPerformed(ActionEvent evt) {
+		//				System.exit(0);
+		//			}
+		//		});
 	}
 
-	public static void main(String[] args) {
+	public Container getContentPane() {
+		return frame.getContentPane();
+	}
+
+	private CloudToMongo() {
 		createWindow();
 		try {
 			Properties p = new Properties();
@@ -108,9 +139,13 @@ public class CloudToMongo implements MqttCallback {
 			JOptionPane.showMessageDialog(null, "The CloudToMongo.inifile wasn't found.", "CloudToMongo",
 					JOptionPane.ERROR_MESSAGE);
 		}
-		getInstance().connectMongo();
+
+		messagesReceived = new LinkedBlockingQueue<Message>();
+		messagesSaved = new LinkedList<Message>();
+
+		//		connectMongo();
 		startMessageProcessing();
-		getInstance().connecCloud();
+		connecCloud();
 	}
 
 	private void connecCloud() {
@@ -127,7 +162,7 @@ public class CloudToMongo implements MqttCallback {
 		}
 	}
 
-	private void connectMongo() {
+	private static void connectMongo() {
 		String mongoURI = new String();
 		mongoURI = "mongodb://";
 		if (mongo_authentication.equals("true"))
@@ -151,41 +186,63 @@ public class CloudToMongo implements MqttCallback {
 		temps.createIndex(index, options);
 		movs.createIndex(index, options);
 		lightWarnings.createIndex(index, options);
-		// ratsCount.start();
 
 	}
 
 	public static void startMessageProcessing() {
-        Runnable messageProcessor = new Runnable() {
-            @Override
-            public void run() {
-                while (true) {
-                    try {
-                        Message msg = messagesReceived.take();
-                        documentLabel.append("Retrieved from queue: "+msg.toString());
-                        getInstance().validateMessage(msg.getTopic(), msg.getMessage().toString());
-                        
-                    } catch (InterruptedException e) {
-                        documentLabel.append("Error while retriving from queue\n");
-                    }
-                }
-            }
-        };
+		Runnable messageProcessor = new Runnable() {
+			@Override
+			public void run() {
 
-        Thread thread = new Thread(messageProcessor);
-        thread.start();
-    }
-	
+				while (true) {
+					try {
+						//						documentLabel.append("Messages Received CloudToMongo: ");
+						//						messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString());});
+						//						documentLabel.append("\n");
+						//
+						//
+						//						Message msg = messagesReceived.take();
+						//						documentLabel.append("Retrieved from queue: "+msg.toString());
+						//						getInstance().validateMessage(msg.getTopic(), msg.getMessage().toString(), msg);
+						for(int i=0; i<10;i++) {
+							Thread.sleep(5000);
+							documentLabel.append("Taking\n");
+							Message a = messagesReceived.take();
+
+							Thread.sleep(5000);
+							documentLabel.append("Validating\n");
+
+							messagesSaved.add(a);
+							documentLabel.append("Added to saved: "+a.toString()+"\n");
+							documentLabel.append("Messages Received After CloudToMongo: ");
+							messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString()+" | ");});
+							documentLabel.append("\n");
+						}
+						System.exit(1);
+					} catch (InterruptedException e) {
+						documentLabel.append("Error while retriving from queue\n");
+					}
+				}
+			}
+		};
+
+		Thread thread = new Thread(messageProcessor);
+		thread.start();
+	}
+
 	@Override
 	public void messageArrived(String topic, MqttMessage c) throws ParseException {
 		documentLabel.append("-----------------------------------------------------\n");
 		documentLabel.append("Message received:"+c.toString()+" \n");
-		
+
 		try {
 			Message a = new Message(topic, c);
 			messagesReceived.put(a);
-			documentLabel.append("Added to queue: "+a.toString());
-			
+			documentLabel.append("Added to queue: "+a.toString()+"\n");
+			documentLabel.append("Messages Received Before CloudToMongo: ");
+			messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString()+" | ");});
+			documentLabel.append("\n");
+
 		} catch (InterruptedException e) {
 			documentLabel.append("Error while putting message in queue\n");
 		}
@@ -197,7 +254,7 @@ public class CloudToMongo implements MqttCallback {
 	 * @param topic the topic from which the message came from
 	 * @param message the message that will be validated
 	 */
-	private void validateMessage(String topic, String message) {
+	private void validateMessage(String topic, String message, Message mensagem) {
 
 
 		//cleanMsg - mensagem limpa sem as chavetas e espaços
@@ -291,10 +348,10 @@ public class CloudToMongo implements MqttCallback {
 			cleanMsg  = cleanMsg.replaceAll(" ", "");
 			//Validações para o tópico "pisid_mazetemp"
 			if(topic.equals("pisid_mazetemp")) {
-				validateTemps(cleanMsg, message);
+				validateTemps(cleanMsg, message, mensagem);
 
 			}else if(topic.equals("pisid_mazemov")) {
-				validateMovs(cleanMsg, message);
+				validateMovs(cleanMsg, message, mensagem);
 			}
 
 		}else {
@@ -304,7 +361,7 @@ public class CloudToMongo implements MqttCallback {
 
 	}
 
-	private void validateMovs(String cleanMsg, String message) {
+	private void validateMovs(String cleanMsg, String message, Message mensagem) {
 		String fields[] = cleanMsg.split(",");
 		//Verificar se tem os 3 campos certos necessÃ¡rios
 		if(cleanMsg.contains("SalaEntrada") && cleanMsg.contains("SalaSaida") && cleanMsg.contains("Hora")) {
@@ -314,7 +371,7 @@ public class CloudToMongo implements MqttCallback {
 			if(salaSaida[1].equals(salaEntrada[1]) && (!salaSaida[1].equals("0") && !salaEntrada[1].equals("0"))) {
 
 				documentLabel.append("Message Discarded ROOM\n");
-				discardMessage(0, message);
+				discardMessage(0, message, mensagem);
 				return;
 
 			}
@@ -322,13 +379,13 @@ public class CloudToMongo implements MqttCallback {
 
 			if(!salaSaida[1].matches("^-?[0-9]+(\\.[0-9]+)?$") || !salaEntrada[1].matches("^-?[0-9]+(\\.[0-9]+)?$")) {
 				documentLabel.append("Message Discarded ROOM\n");
-				discardMessage(0, message);
+				discardMessage(0, message, mensagem);
 				return;
 			}
 
 			if(Integer.parseInt(salaSaida[1]) < 0 || Integer.parseInt(salaEntrada[1]) < 0) {
 				documentLabel.append("Message Discarded ROOM\n");
-				discardMessage(0, message);
+				discardMessage(0, message, mensagem);
 				return;
 			}
 
@@ -339,7 +396,7 @@ public class CloudToMongo implements MqttCallback {
 
 			document_json = (DBObject) JSON.parse(message);
 
-			saveToMongo("movs", document_json);
+			saveToMongo("movs", document_json, mensagem);
 
 		}else {
 
@@ -348,7 +405,7 @@ public class CloudToMongo implements MqttCallback {
 		}
 	}
 
-	private void validateTemps(String cleanMsg, String message) {
+	private void validateTemps(String cleanMsg, String message, Message mensagem) {
 		String fields[] = cleanMsg.split(",");
 		//Verificar se tem os 3 campos certos necessários
 		if(cleanMsg.contains("Leitura") && cleanMsg.contains("Sensor") && cleanMsg.contains("Hora")){
@@ -372,7 +429,7 @@ public class CloudToMongo implements MqttCallback {
 				if(!temperatura[0].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
 					documentLabel.append("Message Discarded READING WITH LETTER BEFORE DOT\n");
 
-					discardMessage(Integer.parseInt(sensor[1]), message);
+					discardMessage(Integer.parseInt(sensor[1]), message, mensagem);
 					return;
 				}
 
@@ -432,7 +489,7 @@ public class CloudToMongo implements MqttCallback {
 					&& Math.abs(Double.valueOf(lastTempsMessageSensor2.get("Leitura").toString()) - Double.valueOf(document_json.get("Leitura").toString())) >= 4)) {
 
 				documentLabel.append("Message Discarded IMPOSSIBLE TEMP VAR\n");
-				discardMessage((int)(document_json.get("Sensor")), message);
+				discardMessage((int)(document_json.get("Sensor")), message, mensagem);
 				return;
 			}
 
@@ -440,7 +497,7 @@ public class CloudToMongo implements MqttCallback {
 			//Caso o código chegue aqui significa que a mensagem está neste momento boa para guardar na BD, 
 			//Por isso chamamos a função saveToMongo para guardar na coleção temps.
 
-			saveToMongo("temps", document_json);
+			saveToMongo("temps", document_json, mensagem);
 
 		}else {
 
@@ -457,7 +514,7 @@ public class CloudToMongo implements MqttCallback {
 	 *	@param message The message that's supposed to be discarded
 	 *				
 	 */
-	private void discardMessage(int type, String message) {
+	private void discardMessage(int type, String message, Message mensagem) {
 
 		message = message.replace("}", "");
 		message = message.replace("{", "");
@@ -467,12 +524,18 @@ public class CloudToMongo implements MqttCallback {
 
 
 		if(discardCounters[type] < 3) {
-			createLightWarning("disc", newMessage, 0);
+			createLightWarning("disc", newMessage, 0, mensagem);
 			discardCounters[type]++;
 		}else {
-			createLightWarning("probAv", "", type);
+			createLightWarning("probAv", "", type, mensagem);
 			discardCounters[type] = 0;
 		}
+
+		messagesSaved.add(mensagem);
+
+		documentLabel.append("Messages Saved: ");
+		messagesSaved.forEach((n)->{documentLabel.append(n.getMessage().toString());});
+		documentLabel.append("\n");
 	}
 
 	/** This function creates a DBObject 'lightWarning' with the given type.
@@ -490,7 +553,7 @@ public class CloudToMongo implements MqttCallback {
 	 * @param message The message that was discarted. Is only need if type is "disc", otherwise can be blank
 	 * @param SensorOrRoom The Sensor or Room, depending on the type, that the lightWarning refers to
 	 */
-	private void createLightWarning(String type, String message, int SensorOrRoom) {
+	private void createLightWarning(String type, String message, int SensorOrRoom, Message mensagem) {
 
 		DBObject lightWarning = new BasicDBObject();
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
@@ -523,7 +586,7 @@ public class CloudToMongo implements MqttCallback {
 
 		}
 
-		saveToMongo("lightWarnings", lightWarning);
+		saveToMongo("lightWarnings", lightWarning, mensagem);
 	}
 
 	/**
@@ -534,7 +597,7 @@ public class CloudToMongo implements MqttCallback {
 	 * @param collection "temps", "movs" or "lightWarnings"
 	 * @param document_json The DBObject to save to the collection
 	 */
-	private void saveToMongo(String collection, DBObject document_json) {
+	private void saveToMongo(String collection, DBObject document_json, Message message) {
 
 
 		mostRecentDate = document_json.get("Hora").toString();
@@ -544,7 +607,7 @@ public class CloudToMongo implements MqttCallback {
 		switch(collection) {
 		case "temps":
 			discardCounters[(int)document_json.get("Sensor")] = 0;
-			alterVarCounters("sensor", document_json);
+			alterVarCounters("sensor", document_json, message);
 
 			if((int) document_json.get("Sensor") == 1) {
 				lastTempsMessageSensor1 = document_json;
@@ -567,7 +630,7 @@ public class CloudToMongo implements MqttCallback {
 				break;
 			}
 
-			alterVarCounters("room", document_json);
+			alterVarCounters("room", document_json, message);
 			lastMovsMessage = document_json;
 			break;
 
@@ -575,10 +638,15 @@ public class CloudToMongo implements MqttCallback {
 		break;
 		}
 
-		documentLabel.append("Saved to Mongo\n");
+		documentLabel.append("Saved to Mongo and added to Queue\n");
+		messagesSaved.add(message);
+
+		documentLabel.append("Messages Saved: ");
+		messagesSaved.forEach((n)->{documentLabel.append(n.getMessage().toString());});
+		documentLabel.append("\n");
 	}
 
-	private void alterVarCounters(String type, DBObject document_json) {
+	private void alterVarCounters(String type, DBObject document_json, Message message) {
 		switch(type) {
 		case "sensor":
 			double diff = 0;
@@ -600,7 +668,7 @@ public class CloudToMongo implements MqttCallback {
 			}
 
 			if(varSensors[(int)document_json.get("Sensor")-1] >= 5 || varSensors[(int)document_json.get("Sensor")-1] <= -5) {
-				createLightWarning("rapVar", "", (int)document_json.get("Sensor"));
+				createLightWarning("rapVar", "", (int)document_json.get("Sensor"), message);
 				varSensors[(int)document_json.get("Sensor")-1] = 0;
 			}
 
@@ -616,27 +684,8 @@ public class CloudToMongo implements MqttCallback {
 	@Override
 	public void deliveryComplete(IMqttDeliveryToken token) {
 	}
-	
-	 private class Message {
-	        private String topic;
-	        private MqttMessage message;
 
-	        public Message(String topic, MqttMessage message) {
-	            this.topic = topic;
-	            this.message = message;
-	        }
-
-	        public String getTopic() {
-	            return topic;
-	        }
-
-	        public MqttMessage getMessage() {
-	            return message;
-	        }
-	        
-	        @Override
-	        public String toString() {
-	        	return message.toString() + " from " + topic;
-	        }
-	    }
+	public static void main(String[] args) {
+		getInstance();	
+	}
 }
