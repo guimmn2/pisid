@@ -64,7 +64,12 @@ public class MqttSender extends JFrame {
         try {
             MqttMessage mqttMessage = new MqttMessage(message.getBytes());
             mqttMessage.setQos(2);
-            client.publish("lightWarnings", mqttMessage);
+//            client.publish("pisid_mazemov", "movimentação ratos: {hour:2023-01-09 10:43:49.816173, from:1, to:3}".getBytes(), 2, true);
+//            client.publish("pisid_mazetemp", "".getBytes(), 2, true);
+//            client.publish("pisid_mazemov", "ABRE AS PORTAS!".getBytes(), 2, true);
+//            client.publish("pisid_temp", "ESTÁ FRIO WI!".getBytes(), 2, true);
+            client.publish("test_rats", mqttMessage);
+            
             textArea.append("Sent: " + message + "\n");
             textField.setText("");
         } catch (MqttException e) {

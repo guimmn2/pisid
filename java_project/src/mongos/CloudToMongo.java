@@ -10,6 +10,7 @@ import com.mongodb.*;
 import com.mongodb.util.JSON;
 
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,6 +22,9 @@ import java.awt.*;
 import java.awt.event.*;
 
 public class CloudToMongo implements MqttCallback {
+	
+	private static CloudToMongo instance;
+	
 	MqttClient mqttclient;
 	static MongoClient mongoClient;
 	static DB db;
@@ -47,8 +51,16 @@ public class CloudToMongo implements MqttCallback {
 	//hora em que é iniciado o programa
 	private String mostRecentDate =LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS"));
 	private int[] discardCounters = new int[3];
-
 	private double[]varSensors = new double[2];
+	
+	private static LinkedBlockingQueue<Message> messagesReceived;
+
+	public static CloudToMongo getInstance() {
+		if (instance == null) {
+			instance = new CloudToMongo();
+		}
+		return instance;
+	}
 
 	private static void createWindow() {
 		JFrame frame = new JFrame("Cloud to Mongo");
@@ -96,11 +108,12 @@ public class CloudToMongo implements MqttCallback {
 			JOptionPane.showMessageDialog(null, "The CloudToMongo.inifile wasn't found.", "CloudToMongo",
 					JOptionPane.ERROR_MESSAGE);
 		}
-		new CloudToMongo().connectMongo();
-		new CloudToMongo().connecCloud();
+		getInstance().connectMongo();
+		startMessageProcessing();
+		getInstance().connecCloud();
 	}
 
-	public void connecCloud() {
+	private void connecCloud() {
 		int i;
 		try {
 			i = new Random().nextInt(100000);
@@ -114,7 +127,7 @@ public class CloudToMongo implements MqttCallback {
 		}
 	}
 
-	public void connectMongo() {
+	private void connectMongo() {
 		String mongoURI = new String();
 		mongoURI = "mongodb://";
 		if (mongo_authentication.equals("true"))
@@ -142,12 +155,41 @@ public class CloudToMongo implements MqttCallback {
 
 	}
 
+	public static void startMessageProcessing() {
+        Runnable messageProcessor = new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    try {
+                        Message msg = messagesReceived.take();
+                        documentLabel.append("Retrieved from queue: "+msg.toString());
+                        getInstance().validateMessage(msg.getTopic(), msg.getMessage().toString());
+                        
+                    } catch (InterruptedException e) {
+                        documentLabel.append("Error while retriving from queue\n");
+                    }
+                }
+            }
+        };
+
+        Thread thread = new Thread(messageProcessor);
+        thread.start();
+    }
+	
 	@Override
 	public void messageArrived(String topic, MqttMessage c) throws ParseException {
 		documentLabel.append("-----------------------------------------------------\n");
 		documentLabel.append("Message received:"+c.toString()+" \n");
-
-		validateMessage(topic, c.toString());
+		
+		try {
+			Message a = new Message(topic, c);
+			messagesReceived.put(a);
+			documentLabel.append("Added to queue: "+a.toString());
+			
+		} catch (InterruptedException e) {
+			documentLabel.append("Error while putting message in queue\n");
+		}
+		//validateMessage(topic, c.toString());
 	}
 
 	/**
@@ -329,7 +371,7 @@ public class CloudToMongo implements MqttCallback {
 
 				if(!temperatura[0].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
 					documentLabel.append("Message Discarded READING WITH LETTER BEFORE DOT\n");
-					
+
 					discardMessage(Integer.parseInt(sensor[1]), message);
 					return;
 				}
@@ -397,7 +439,7 @@ public class CloudToMongo implements MqttCallback {
 
 			//Caso o código chegue aqui significa que a mensagem está neste momento boa para guardar na BD, 
 			//Por isso chamamos a função saveToMongo para guardar na coleção temps.
-			
+
 			saveToMongo("temps", document_json);
 
 		}else {
@@ -416,14 +458,14 @@ public class CloudToMongo implements MqttCallback {
 	 *				
 	 */
 	private void discardMessage(int type, String message) {
-		
+
 		message = message.replace("}", "");
 		message = message.replace("{", "");
 		message = message.replace(" ", "");
 		String[] aux = message.split(",");
 		String newMessage = "{" + aux[1] + ", " + aux[2] + "}";
-		
-		
+
+
 		if(discardCounters[type] < 3) {
 			createLightWarning("disc", newMessage, 0);
 			discardCounters[type]++;
@@ -457,7 +499,7 @@ public class CloudToMongo implements MqttCallback {
 
 		switch(type) {
 		case "rapVar":
-			
+
 			lightWarning.put("Tipo", "light_temp");		
 			lightWarning.put("Sensor", SensorOrRoom);
 			lightWarning.put("Mensagem", "R�pida varia��o da temperatura registada no sensor " + SensorOrRoom +".");
@@ -465,14 +507,14 @@ public class CloudToMongo implements MqttCallback {
 			break;
 
 		case "disc":
-			
+
 			lightWarning.put("Tipo", "descartada");
 			lightWarning.put("Mensagem", message);
 			documentLabel.append("Created LightWarning descartada\n");
 			break;
 
 		case "probAv":
-			
+
 			lightWarning.put("Tipo", "avaria");
 			lightWarning.put("Sensor", SensorOrRoom);
 			lightWarning.put("Mensagem", "Prov�vel avaria no sensor "+ SensorOrRoom + ".");
@@ -493,8 +535,8 @@ public class CloudToMongo implements MqttCallback {
 	 * @param document_json The DBObject to save to the collection
 	 */
 	private void saveToMongo(String collection, DBObject document_json) {
-		
-		
+
+
 		mostRecentDate = document_json.get("Hora").toString();
 		document_json.put("createdAt", new Date());
 		document_json.put("sent",0);
@@ -521,7 +563,7 @@ public class CloudToMongo implements MqttCallback {
 			if(document_json.get("SalaEntrada").equals(0) && document_json.get("SalaSaida").equals(0)) {
 				lastMovsMessage = document_json;
 				System.out.println(lastMovsMessage);
-				
+
 				break;
 			}
 
@@ -563,7 +605,7 @@ public class CloudToMongo implements MqttCallback {
 			}
 
 			break;
-			
+
 		}
 	}
 
@@ -574,4 +616,27 @@ public class CloudToMongo implements MqttCallback {
 	@Override
 	public void deliveryComplete(IMqttDeliveryToken token) {
 	}
+	
+	 private class Message {
+	        private String topic;
+	        private MqttMessage message;
+
+	        public Message(String topic, MqttMessage message) {
+	            this.topic = topic;
+	            this.message = message;
+	        }
+
+	        public String getTopic() {
+	            return topic;
+	        }
+
+	        public MqttMessage getMessage() {
+	            return message;
+	        }
+	        
+	        @Override
+	        public String toString() {
+	        	return message.toString() + " from " + topic;
+	        }
+	    }
 }
