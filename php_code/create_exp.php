@@ -1,3 +1,0 @@
-<?php
-echo "<h1>PAGINA DE CRIAR EXPERIENCIA E TAL</h1>";
-?>

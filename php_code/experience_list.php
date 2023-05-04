@@ -29,5 +29,5 @@ $conn->close();
 
 
 //show button to create experience
-echo "<a href='create_exp.php'><button>Criar Experiência</button></a>";
+echo "<a href='create_experience.html'><button>Criar Experiência</button></a>";
 ?>

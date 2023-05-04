@@ -1,13 +1,14 @@
 <?php
 include('utils/init.php');
 
+//TODO
+//find a way to not even show this page to someone that's not admin_app
+
 //only admin_app users can access this page
-/*
-if ($_SESSION['role'] != ADMIN) {
+if ($_SESSION['role'] != ADMIN_APP) {
         echo "not allowed";
         die();
-}
-*/
+} 
 
 $dbConn = new DbConn(DB, HOST, $_SESSION['email'], $_SESSION['password']);
 $conn = $dbConn->getConn();

@@ -19,7 +19,7 @@ $_SESSION['email'] = $email;
 $_SESSION['password'] = $password;
 
 if ($role == INVESTIGATOR || $role == TECHNICIAN) {
-    header('Location: home.php');
+    header('Location: experience_list.php');
     die();
 
 } else if ($role == ADMIN_APP || $role == ADMIN) {
