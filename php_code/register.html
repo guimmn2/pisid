@@ -7,7 +7,7 @@
 </head>
 
 <body>
-    <h1>Register Investigator</h1>
+    <h1>Registar Utilizador</h1>
     <form action="register.php" method="post" autocomplete="off">
         <label for="name">Name</label>
         <input type="text" id="name" name="name" required >
@@ -18,9 +18,10 @@
         <label for="email">Email</label>
         <input type="email" id="email" name="email">
         <br>
-        <label for="type">Type</label>
-        <select name="type" id="type">
-            <option value="inv">Investigador</option> <!--n sei se o admin app pode criar outros tipos de user, se for apenas investigador n é necessario o select option-->>
+        <label for="role">Type</label>
+        <select name="role" id="role">
+            <option value="investigador">Investigador</option> <!--n sei se o admin app pode criar outros tipos de user, se for apenas investigador n é necessario o select option-->>
+            <option value="tecnico">Tecnico</option> <!--n sei se o admin app pode criar outros tipos de user, se for apenas tecnico n é necessario o select option-->>
         </select>
         <br>
         <input type="submit" value="Submit">

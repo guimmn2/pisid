@@ -1,8 +1,5 @@
 <?php
-include('constants.php');
-include_once('db_conn_class.php');
-
-session_start();
+include('utils/init.php');
 $dbConn = new DbConn(DB, HOST, $_SESSION['email'], $_SESSION['password']);
 $conn = $dbConn->getConn();
 
