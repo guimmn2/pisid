@@ -1,37 +1,48 @@
 <?php
+include('utils/init.php');
 
-include_once('db_conn_class.php');
-include ('constants.php');
+//TODO
+//find a way to not even show this page to someone that's not admin_app
 
-#session_start();
+//only admin_app users can access this page
+if ($_SESSION['role'] != ADMIN_APP) {
+        echo "not allowed";
+        die();
+} 
 
-$servername = "localhost";
-$username = "root";
-$password = "";
-$database = "pisid";
-$conn = mysqli_connect($servername, $username, $password, $database);
-
+$dbConn = new DbConn(DB, HOST, $_SESSION['email'], $_SESSION['password']);
+$conn = $dbConn->getConn();
 
 $name = $_POST['name'];
+$role = $_POST['role'];
 $phone = $_POST['phone'];
 $email = $_POST['email'];
-$type = $_POST['type'];
 
-$sql_query = "CREATE USER '$name'@'localhost' IDENTIFIED BY 'test';
-                        GRANT SELECT, INSERT, UPDATE ON `pisid`.* TO '$name'@'localhost';
-                        GRANT ALL PRIVILEGES ON `utilizador`.* TO '$name'@'localhost';
-                        GRANT SELECT, INSERT, UPDATE ON `pisid`.`experiencia` TO '$name'@'localhost';
-                        GRANT SELECT, INSERT, UPDATE ON `pisid`.`substanciasexperiencia` TO '$name'@'localhost';
-                        GRANT SELECT, INSERT, UPDATE ON `pisid`.`odoresexperiencia` TO '$name'@'localhost';";
-
-mysqli_multi_query($conn, "SET sql_mode=''");
-mysqli_multi_query($conn, $sql_query);
-
-if (mysqli_multi_query($conn, $sql_query)) {
-        print ("User created");
-} else {
-        print ("Error when trying to create a user: " . mysqli_error($conn));
+$random_password = random_str(8);
+//call DB SP according to role
+if ($role == 'investigador') {
+        if ($stmt = $conn->prepare("CALL CreateInvestigator(?, ?, ? ,?)")) {
+                print_r($random_password);
+                $stmt->bind_param('ssss', $name, $phone, $email, $random_password);
+                if ($stmt->execute()) {
+                        echo "registered investigator successfully";
+                        //TODO
+                        //send email to user with creds
+                } else {
+                        echo "not able to register investigator, try again later";
+                }
+        }
+} else if ($role == 'tecnico') {
+        if ($stmt = $conn->prepare("CALL CreateTechnician(?, ?, ? ,?)")) {
+                $stmt->bind_param('ssss', $name, $phone, $email, $random_password);
+                if ($stmt->execute()) {
+                        echo "registered technician successfully";
+                        //TODO
+                        //send email to user with creds
+                } else {
+                        echo "not able to register technician, try again later";
+                }
+        }
 }
-
-mysqli_close($conn);
+//reset form ? go back to form ? dunno ...
 ?>
