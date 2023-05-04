@@ -49,8 +49,8 @@ public class MongoToMqtt implements MqttCallback {
 	static String mongo_collection_2 = new String();
 	static String mongo_authentication = new String();
 	static JTextArea documentLabel = new JTextArea("\n");
-	static int periodicity = 1;
-
+	static int periodicity = 2;
+	static MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
 	public static void publishData() throws MqttPersistenceException, MqttException {
 
 		Document lightWarning = new Document();
@@ -69,74 +69,267 @@ public class MongoToMqtt implements MqttCallback {
 
 
 
-		while (true) {
-			// Select the database to use
+		//	while (true) {
+		// Select the database to use
 
 
-			MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(eq("sent", 0)).iterator();
-			MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(eq("sent", 0)).iterator();
-			MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(eq("sent", 0)).iterator();
+		//	MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(eq("sent", 0)).iterator();
+		//	MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(eq("sent", 0)).iterator();
+		//	MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(eq("sent", 0)).iterator();
 
-			//send temps
-//			while (cursor.hasNext()) {
-//				Document doc = cursor.next();
-//				doc.remove("createdAt");
-//				doc.remove("sent");
-//				String payload = doc.toJson();
-//				documentLabel.append(payload.toString() + "\n");
-//				mqttclient.publish(topic_temps, payload.getBytes(), 1, false);
-//				doc.put("sent", 1);
-//				db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
-//			}
-//
-//			//send movs
-//			while (cursor_1.hasNext()) {
-//				Document doc = cursor_1.next();
-//				doc.remove("createdAt");
-//				doc.remove("sent");
-//				if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
-//					String payload = doc.toJson();
-//					documentLabel.append(payload.toString() + "\n");
-//					mqttclient.publish(topic_movs, payload.getBytes(), 1, true);
-//				} else {
-//					String payload = doc.toJson();
-//					documentLabel.append(payload.toString() + "\n");
-//					mqttclient.publish(topic_movs, payload.getBytes(), 1, false);
-//				}
-//				doc.put("sent", 1);
-//				db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
-//			}
+		//send temps
+		//			while (cursor.hasNext()) {
+		//				Document doc = cursor.next();
+		//				doc.remove("createdAt");
+		//				doc.remove("sent");
+		//				String payload = doc.toJson();
+		//				documentLabel.append(payload.toString() + "\n");
+		//				mqttclient.publish(topic_temps, payload.getBytes(), 1, false);
+		//				doc.put("sent", 1);
+		//				db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+		//			}
 
-			//send lightWarnings
-			while (cursor_2.hasNext()) {
-				Document doc = cursor_2.next();
-				doc.remove("createdAt");
-				doc.remove("sent");
-				doc.remove("_id");
-				
-				
-
-
-				if(doc.get("Tipo").equals("MongoDB_status") && cursor_2.hasNext()) {
-					cursor_2.next();
-				} else {
+		Thread thread1 = new Thread(() -> {
+			while(true) {
+				MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(eq("sent",0)).iterator();	            
+				while (cursor.hasNext()) {
+					Document doc = cursor.next();
+					doc.remove("createdAt");
+					doc.remove("sent");
 					String payload = doc.toJson();
 					documentLabel.append(payload.toString() + "\n");
-					mqttclient.publish(topic_lightWarnings, payload.getBytes(), 2, false);
+					try {
+						mqttclient.publish(topic_temps, payload.getBytes(), 1, false);
+						doc.put("sent", 1);
+						db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+					} catch (MqttPersistenceException e) {
+						
+						e.printStackTrace();
+					} catch (MqttException e) {
+						try {
+							mqttclient.connect(mqttConnectOptions);
+							Document lightWarningT1 = new Document();
+							SimpleDateFormat formatT1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+							String strT1 = formatT1.format(new Date());
+							lightWarningT1.put("Hora", strT1);
+							lightWarningT1.put("Tipo", "MongoDB_status");
+							lightWarningT1.put("Mensagem", "MongoDB is up!");
+							lightWarningT1.put("createdAt", new Date());
+
+							lightWarnings.insertOne(lightWarningT1);
+							lightWarningT1.remove("_id");
+							lightWarningT1.remove("createdAt");
+							documentLabel.append(lightWarningT1.toJson().toString() + "\n");
+							mqttclient.publish(topic_lightWarnings, lightWarningT1.toJson().toString().getBytes(), 2, true);
+							
+						} catch (MqttException e1) {
+							// TODO Auto-generated catch block
+							e1.printStackTrace();
+						}
+						System.out.println(doc.toString());
+						e.printStackTrace();
+					}
+					
 				}
-				doc.put("sent", 1);
-				db.getCollection(mongo_collection_2).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
-				doc.remove("_id");
+				try {
+					TimeUnit.SECONDS.sleep(periodicity);
+				} catch (InterruptedException e) {
+					System.err.println("Interrupted publish data to mqtt");
+				}
+			}});
 
-			}
+		//send movs
+		//			while (cursor_1.hasNext()) {
+		//				Document doc = cursor_1.next();
+		//				doc.remove("createdAt");
+		//				doc.remove("sent");
+		//				if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
+		//					String payload = doc.toJson();
+		//					documentLabel.append(payload.toString() + "\n");
+		//					mqttclient.publish(topic_movs, payload.getBytes(), 1, true);
+		//				} else {
+		//					String payload = doc.toJson();
+		//					documentLabel.append(payload.toString() + "\n");
+		//					mqttclient.publish(topic_movs, payload.getBytes(), 1, false);
+		//				}
+		//				doc.put("sent", 1);
+		//				db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+		//			}
 
-			// Wait for 1 second before retrieving the newest readings and sensor status again
-			try {
-				TimeUnit.SECONDS.sleep(periodicity);
-			} catch (InterruptedException e) {
-				System.err.println("Interrupted publish data to mqtt");
+
+		Thread thread2 = new Thread(() -> {
+			while(true) {
+				MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(eq("sent", 0)).iterator();
+				while (cursor_1.hasNext()) {
+					Document doc = cursor_1.next();
+					doc.remove("createdAt");
+					doc.remove("sent");
+					if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
+						String payload = doc.toJson();
+						documentLabel.append(payload.toString() + "\n");
+						try {
+							mqttclient.publish(topic_movs, payload.getBytes(), 1, true);
+							doc.put("sent", 1);
+							db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+						} catch (MqttPersistenceException e) {
+							
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (MqttException e) {
+							try {
+								mqttclient.connect(mqttConnectOptions);
+								
+								Document lightWarningT21 = new Document();
+								SimpleDateFormat formatT21 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+								String strT21 = formatT21.format(new Date());
+								lightWarningT21.put("Hora", strT21);
+								lightWarningT21.put("Tipo", "MongoDB_status");
+								lightWarningT21.put("Mensagem", "MongoDB is up!");
+								lightWarningT21.put("createdAt", new Date());
+
+								lightWarnings.insertOne(lightWarningT21);
+								lightWarningT21.remove("_id");
+								lightWarningT21.remove("createdAt");
+								documentLabel.append(lightWarningT21.toJson().toString() + "\n");
+								mqttclient.publish(topic_lightWarnings, lightWarningT21.toJson().toString().getBytes(), 2, true);
+							} catch (MqttException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							System.out.println(doc.toString());
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					} else {
+						String payload = doc.toJson();
+						documentLabel.append(payload.toString() + "\n");
+						try {
+							mqttclient.publish(topic_movs, payload.getBytes(), 1, false);
+							doc.put("sent", 1);
+							db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+						} catch (MqttPersistenceException e) {
+							
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (MqttException e) {
+							try {
+								mqttclient.connect(mqttConnectOptions);
+								Document lightWarningT22 = new Document();
+								SimpleDateFormat formatT22 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+								String strT22 = formatT22.format(new Date());
+								lightWarningT22.put("Hora", strT22);
+								lightWarningT22.put("Tipo", "MongoDB_status");
+								lightWarningT22.put("Mensagem", "MongoDB is up!");
+								lightWarningT22.put("createdAt", new Date());
+
+								lightWarnings.insertOne(lightWarningT22);
+								lightWarningT22.remove("_id");
+								lightWarningT22.remove("createdAt");
+								documentLabel.append(lightWarningT22.toJson().toString() + "\n");
+								mqttclient.publish(topic_lightWarnings, lightWarningT22.toJson().toString().getBytes(), 2, true);
+							} catch (MqttException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							System.out.println(doc.toString());
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+					
+				}
+				try {
+					TimeUnit.SECONDS.sleep(periodicity);
+				} catch (InterruptedException e) {
+					System.err.println("Interrupted publish data to mqtt");
+				}
+			}});
+
+		//send lightWarnings
+		//			while (cursor_2.hasNext()) {
+		//				Document doc = cursor_2.next();
+		//				doc.remove("createdAt");
+		//				doc.remove("sent");
+		//
+		//				if(doc.get("Tipo").equals("MongoDB_status") && cursor_2.hasNext()) {
+		//					cursor_2.next();
+		//				} else {
+		//					String payload = doc.toJson();
+		//					documentLabel.append(payload.toString() + "\n");
+		//					mqttclient.publish(topic_lightWarnings, payload.getBytes(), 2, false);
+		//				}
+		//				doc.put("sent", 1);
+		//				db.getCollection(mongo_collection_2).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+		//				
+		//			}
+
+		Thread thread3 = new Thread(() -> {
+			while(true) {
+				MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(eq("sent", 0)).iterator();
+				while (cursor_2.hasNext()) {
+					Document doc = cursor_2.next();
+					doc.remove("createdAt");
+					doc.remove("sent");
+
+					if(doc.get("Tipo").equals("MongoDB_status") && cursor_2.hasNext()) {
+						cursor_2.next();
+					} else {
+						String payload = doc.toJson();
+						documentLabel.append(payload.toString() + "\n");
+
+						try {
+							mqttclient.publish(topic_lightWarnings, payload.getBytes(), 2, false);
+							doc.put("sent", 1);
+							db.getCollection(mongo_collection_2).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
+						} catch (MqttPersistenceException e) {
+							
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (MqttException e) {
+							try {
+								mqttclient.connect(mqttConnectOptions);
+								Document lightWarningT3 = new Document();
+								SimpleDateFormat formatT3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+								String strT3 = formatT3.format(new Date());
+								lightWarningT3.put("Hora", strT3);
+								lightWarningT3.put("Tipo", "MongoDB_status");
+								lightWarningT3.put("Mensagem", "MongoDB is up!");
+								lightWarningT3.put("createdAt", new Date());
+
+								lightWarnings.insertOne(lightWarningT3);
+								lightWarningT3.remove("_id");
+								lightWarningT3.remove("createdAt");
+								documentLabel.append(lightWarningT3.toJson().toString() + "\n");
+								mqttclient.publish(topic_lightWarnings, lightWarningT3.toJson().toString().getBytes(), 2, true);
+							} catch (MqttException e1) {
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							System.out.println(doc.toString());
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
+					}
+					
+
+				}
+				try {
+					TimeUnit.SECONDS.sleep(periodicity);
+				} catch (InterruptedException e) {
+					System.err.println("Interrupted publish data to mqtt");
+				}
 			}
-		}
+		});
+
+		thread1.start();
+		thread2.start();
+		thread3.start();
+
+
+		// Wait for 1 second before retrieving the newest readings and sensor status again
+
+		//}
 	}
 
 	private static void createWindow() {
@@ -198,8 +391,8 @@ public class MongoToMqtt implements MqttCallback {
 		try {
 
 			mqttclient = new MqttClient(cloud_server, "1001");
+
 			
-			MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
 			mqttConnectOptions.setUserName("Mongo");
 			String aux = "Rats404";
 			mqttConnectOptions.setPassword(aux.toCharArray());
@@ -213,14 +406,14 @@ public class MongoToMqtt implements MqttCallback {
 			lightWarning.put("Mensagem", "MongoDB is down!");
 			String lastWill = lightWarning.toString();
 			mqttConnectOptions.setWill(topic_lightWarnings, lastWill.getBytes(), 2, true);
-			
-			
+
+
 
 			//mqttclient.connect(mqttConnectOptions);
-			
+
 			IMqttToken token = mqttclient.connectWithResult(mqttConnectOptions);
 			System.out.println(token);
-		    token.waitForCompletion();
+			token.waitForCompletion();
 
 			String mongoURI = new String();
 			mongoURI = "mongodb://";		
@@ -242,10 +435,14 @@ public class MongoToMqtt implements MqttCallback {
 		}
 	}
 
+
+
+
+
 	@Override
 	public void connectionLost(Throwable cause) {
-		
-		
+
+
 	}
 
 	@Override

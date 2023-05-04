@@ -397,7 +397,7 @@ public class CloudToMongo implements MqttCallback {
 
 			//Caso o código chegue aqui significa que a mensagem está neste momento boa para guardar na BD, 
 			//Por isso chamamos a função saveToMongo para guardar na coleção temps.
-			System.out.println("SAVE");
+			
 			saveToMongo("temps", document_json);
 
 		}else {
@@ -457,7 +457,7 @@ public class CloudToMongo implements MqttCallback {
 
 		switch(type) {
 		case "rapVar":
-			System.out.println("OLAAAAAAAAAAAAAAAAAA");
+			
 			lightWarning.put("Tipo", "light_temp");		
 			lightWarning.put("Sensor", SensorOrRoom);
 			lightWarning.put("Mensagem", "R�pida varia��o da temperatura registada no sensor " + SensorOrRoom +".");
@@ -465,14 +465,14 @@ public class CloudToMongo implements MqttCallback {
 			break;
 
 		case "disc":
-			System.out.println("OLAAAAAAAAAAAAAAAAAA");
+			
 			lightWarning.put("Tipo", "descartada");
 			lightWarning.put("Mensagem", message);
 			documentLabel.append("Created LightWarning descartada\n");
 			break;
 
 		case "probAv":
-			System.out.println("OLAAAAAAAAAAAAAAAAAA");
+			
 			lightWarning.put("Tipo", "avaria");
 			lightWarning.put("Sensor", SensorOrRoom);
 			lightWarning.put("Mensagem", "Prov�vel avaria no sensor "+ SensorOrRoom + ".");
@@ -493,12 +493,13 @@ public class CloudToMongo implements MqttCallback {
 	 * @param document_json The DBObject to save to the collection
 	 */
 	private void saveToMongo(String collection, DBObject document_json) {
+		
+		
 		mostRecentDate = document_json.get("Hora").toString();
 		document_json.put("createdAt", new Date());
 		document_json.put("sent",0);
 
 		switch(collection) {
-
 		case "temps":
 			discardCounters[(int)document_json.get("Sensor")] = 0;
 			alterVarCounters("sensor", document_json);
@@ -519,6 +520,8 @@ public class CloudToMongo implements MqttCallback {
 			discardCounters[0] = 0;	
 			if(document_json.get("SalaEntrada").equals(0) && document_json.get("SalaSaida").equals(0)) {
 				lastMovsMessage = document_json;
+				System.out.println(lastMovsMessage);
+				
 				break;
 			}
 
