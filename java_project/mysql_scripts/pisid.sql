@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 03, 2023 at 06:54 PM
+-- Generation Time: May 04, 2023 at 01:54 PM
 -- Server version: 10.3.38-MariaDB-0ubuntu0.20.04.1
 -- PHP Version: 7.4.3-4ubuntu2.18
 
@@ -26,23 +26,57 @@ DELIMITER $$
 --
 -- Procedures
 --
-CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateUser` (IN `name` VARCHAR(100), IN `email` VARCHAR(50), IN `phone` VARCHAR(12), IN `role` VARCHAR(50), IN `password` VARCHAR(50))  NO SQL
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateInvestigator` (IN `name` VARCHAR(100), IN `phone` VARCHAR(12), IN `email` VARCHAR(50), IN `password` VARCHAR(255))  NO SQL
 BEGIN
-    DECLARE `_HOST` CHAR(14) DEFAULT '@''localhost''';
-    SET `email` := CONCAT('''', REPLACE(TRIM(`email`), CHAR(39), CONCAT(CHAR(92), CHAR(39))), ''''),
-    `password` := CONCAT('''', REPLACE(`password`, CHAR(39), CONCAT(CHAR(92), CHAR(39))), '''');
-    SET @`sql` := CONCAT('CREATE USER ', `email`, `_HOST`, ' IDENTIFIED BY ', `password`);
-    PREPARE `stmt` FROM @`sql`;
-    EXECUTE `stmt`;
-    SET @`sql` := CONCAT('GRANT ', `role`, ' TO ', `email`, `_HOST`);
-    PREPARE `stmt` FROM @`sql`;
-    EXECUTE `stmt`;
-    SET @`sql` := CONCAT('SET DEFAULT ROLE ', `role`, ' FOR ', `email`, `_HOST`);
-    PREPARE `stmt` FROM @`sql`;
-    EXECUTE `stmt`;
-    DEALLOCATE PREPARE `stmt`;
-    FLUSH PRIVILEGES;
-    INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (`name`, `phone`, `role`, `email`);
+-- Check if user already exists
+  IF EXISTS (SELECT 1 FROM mysql.user WHERE user = email) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User already exists';
+  END IF;
+
+  -- Create user
+  SET @create_user_query = CONCAT("CREATE USER '", email, "'@'localhost' IDENTIFIED BY '", password, "'");
+  PREPARE stmt FROM @create_user_query;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+
+  -- Grant privileges on experiencia
+  SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.experiencia to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+    -- Grant privileges on parametrosadicionais
+  SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.parametrosadicionais to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+  INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (name, phone, 'investigador', email);
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `CreateTechnician` (IN `name` VARCHAR(100), IN `phone` VARCHAR(12), IN `email` VARCHAR(50), IN `password` VARCHAR(255))  NO SQL
+BEGIN
+-- Check if user already exists
+  IF EXISTS (SELECT 1 FROM mysql.user WHERE user = email) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'User already exists';
+  END IF;
+
+  -- Create user
+  SET @create_user_query = CONCAT("CREATE USER '", email, "'@'localhost' IDENTIFIED BY '", password, "'");
+  PREPARE stmt FROM @create_user_query;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+
+  -- Grant privileges on temperaturas
+  SET @grant_query = CONCAT("GRANT SELECT ON pisid.medicoestemperatura to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+    -- Grant privileges on parametrosadicionais
+  SET @grant_query = CONCAT("GRANT SELECT ON pisid.medicoespassagens to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+    SET @grant_query = CONCAT("GRANT SELECT ON pisid.alerta to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+  INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (name, phone, 'tecnico', email);
 END$$
 
 CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `startTime` TIMESTAMP)  NO SQL
@@ -770,7 +804,9 @@ CREATE TABLE `utilizador` (
 --
 
 INSERT INTO `utilizador` (`nome`, `telefone`, `tipo`, `email`) VALUES
-('guidana', '967098356', 'admin', '\'guidana@email.com\'');
+('admin_app', '967098356', 'admin_app', '\'admin_app@email.com\''),
+('investigador_teste', '967098356', 'investigador', 'investigador@email.com'),
+('tecnico_teste', '967098356', 'tecnico', 'tecnico@email.com');
 
 --
 -- Indexes for dumped tables
