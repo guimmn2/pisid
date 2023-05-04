@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
@@ -40,6 +41,10 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 	private static String dbPassword;
 	private static final int N_TABLES_TO_WRITE = 3;
 	private static final int MQTT_MESSAGE_QUEUE_SIZE = 1000;
+	private static final long RESET_TIME_MS = 4000; // Qual é o tempo máximo para dar reset a um contador
+	private static int[] varRooms; // Contadores em que cada i + 1 corresponde a uma sala (Sala 1 = varRooms[0])
+	private static long[] lastUpdateTime; // Em cada posição diz quando foi a última vez que foi atualizado o contador
+											// da sala correspondente
 
 	static BlockingQueue<String> temperatureQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
 	static BlockingQueue<String> movementQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
@@ -123,16 +128,15 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 
 						String id = objMSG.get("_id").getAsJsonObject().get("$oid").getAsString();
 						String time = objMSG.get("Hora").getAsString();
-						int entry = objMSG.get("SalaEntrada").getAsInt();
-						int exit = objMSG.get("SalaSaida").getAsInt();
+						int nRoomRatLeft = objMSG.get("SalaEntrada").getAsInt();
+						int nRoomRatJoin = objMSG.get("SalaSaida").getAsInt();
+						int nsalas = 0;
 
-						roomPairFromMqtt.add(entry);
-						roomPairFromMqtt.add(exit);
-
-						System.out.println("Debug Mov: " + message);
+						roomPairFromMqtt.add(nRoomRatLeft);
+						roomPairFromMqtt.add(nRoomRatJoin);
 
 						// ao receber 0-0 faz query à db remota para obter info
-						if (entry == 0 && exit == 0) {
+						if (nRoomRatLeft == 0 && nRoomRatJoin == 0) {
 							try (Connection cloudConn = DriverManager
 									.getConnection("jdbc:mariadb://194.210.86.10/pisid_2023_maze", "aluno", "aluno")) {
 								System.out.println("Debug: Connecting to remote db to fetch room data");
@@ -154,8 +158,10 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 									try {
 										Double temp_prog = rsConfig.getDouble("temperaturaprogramada");
 										int seg_exterior = rsConfig.getInt("segundosaberturaportaexterior");
-										int nsalas = rsConfig.getInt("numerosalas");
+										nsalas = rsConfig.getInt("numerosalas");
 
+										varRooms = new int[nsalas];
+										lastUpdateTime = new long[nsalas];
 										CallableStatement csConfig = conn.prepareCall("{call WriteConfig(?,?,?)}");
 										csConfig.setDouble(1, temp_prog);
 										csConfig.setInt(2, seg_exterior);
@@ -182,18 +188,75 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 						}
 						for (ArrayList<Integer> arr : roomPairsFromSql) {
 							// valida salas antes de chamar sp
-							if (arr.containsAll(roomPairFromMqtt) || exit == 0 & entry == 0) {
+							if (arr.containsAll(roomPairFromMqtt) || nRoomRatJoin == 0 && nRoomRatLeft == 0) {
 								try {
+
+									long currentTime = System.currentTimeMillis();
+									for (int i = 0; i < nsalas; i++)
+										if (varRooms[i] > 0 && currentTime - lastUpdateTime[i] > RESET_TIME_MS)
+											varRooms[i] = 0;
+
 									CallableStatement cs = conn.prepareCall("{call WriteMov(?,?,?,?)}");
 									cs.setString(1, id);
 									cs.setTimestamp(2, Timestamp.valueOf(time));
-									cs.setInt(3, entry);
-									cs.setInt(4, exit);
+									cs.setInt(3, nRoomRatLeft);
+									cs.setInt(4, nRoomRatJoin);
 
-									cs.executeUpdate();
+									// Preparing a CallableStatement to call a function
+									CallableStatement cstmt = conn.prepareCall("{? = call GetRatsInRoom(?)}");
+									// Registering the out parameter of the function (return type)
+									cstmt.registerOutParameter(1, Types.INTEGER);
+
+									// Setting the input parameters of the function
+									cstmt.setInt(2, nRoomRatLeft);
+
+									// Executing the statement
+									cstmt.execute();
+
+									int nRatsOnTheRoom = cstmt.getInt(1);
+
+									if (nRatsOnTheRoom > 0 || nRoomRatJoin == 0 && nRoomRatLeft == 0) {
+
+										if (nRoomRatLeft != 0 && nRoomRatJoin != 0) {
+											// Incrementa o contador da Sala de Entrada da mensagem
+											varRooms[nRoomRatLeft - 1]++;
+											varRooms[nRoomRatJoin - 1]--;
+
+											// Dá update do vetor de lastUpdateTime
+											lastUpdateTime[nRoomRatLeft - 1] = System.currentTimeMillis();
+											lastUpdateTime[nRoomRatJoin - 1] = System.currentTimeMillis();
+
+											// Caso o contador exceda 5 cria um lightWarning
+											if (varRooms[nRoomRatLeft - 1] >= 5) {
+												CallableStatement csVar = conn
+														.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+												csVar.setTimestamp(1, Timestamp.valueOf(time));
+												csVar.setInt(2, nRoomRatLeft);
+												csVar.setString(5, "light_mov");
+												csVar.setString(6,
+														"Rapida movimentacao de ratos na sala " + nRoomRatLeft);
+												csVar.executeUpdate();
+												varRooms[nRoomRatLeft - 1] = 0;
+											}
+
+											// Caso o contador exceda -5 cria um lightWarning
+											if (varRooms[nRoomRatJoin - 1] <= -5) {
+												CallableStatement csVar = conn
+														.prepareCall("{call WriteAlert(?,?,?,?,?,?,?)}");
+												csVar.setTimestamp(1, Timestamp.valueOf(time));
+												csVar.setInt(2, nRoomRatJoin);
+												csVar.setString(5, "light_mov");
+												csVar.setString(6,
+														"Rapida movimentacao de ratos na sala " + nRoomRatJoin);
+												csVar.executeUpdate();
+												varRooms[nRoomRatJoin - 1] = 0;
+											}
+										}
+
+										cs.executeUpdate();
+									}
 
 								} catch (SQLException e) {
-
 									System.err.println("Aviso: Erro na escrita de movimento");
 								}
 
@@ -311,7 +374,6 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 								cs.executeUpdate();
 								System.out.println("Debug Alert: " + message);
 							} catch (SQLException e) {
-								e.printStackTrace();
 								System.err.println("Aviso: Não passou periodicidade alerta");
 							}
 						}

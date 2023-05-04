@@ -49,9 +49,9 @@ public class MqttSender implements MqttCallback {
 	public static void main(String[] args) throws MqttPersistenceException, MqttException {
 		MqttSender mongoSender = new MqttSender();
 		mongoSender.connectToMqtt();
-		
+
 		boolean começou = false;
-		
+
 		for (int i = 0; i < 10000; i++) {
 
 			LocalDateTime currentDateTime = LocalDateTime.now();
@@ -64,98 +64,99 @@ public class MqttSender implements MqttCallback {
 
 			double temperature = Math.random() * 15;
 
-			
-			
-			
 			double random = Math.random();
 			String randomString = UUID.randomUUID().toString();
-			
-		/*
-				if(random <= 0.33) {
-					String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 20.1, Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
-					MqttMessage mqtt_message = new MqttMessage();
-					mqtt_message.setPayload(message.getBytes());
-					mqttclient.publish("lightWarnings", mqtt_message);
-				}else if(random <= 0.66){
-					String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 20.1, Sensor: 2, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
-					MqttMessage mqtt_message = new MqttMessage();
-					mqtt_message.setPayload(message.getBytes());
-					mqttclient.publish("lightWarnings", mqtt_message);
-				} else {
-					String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
-					MqttMessage mqtt_message = new MqttMessage();
-					mqtt_message.setPayload(message.getBytes());
-					mqttclient.publish("readings/mov", mqtt_message);
-				}
-				
-			*/
-			
-			
+
 			/*
-			if(random <= 0.5) {
-				String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 20.1, Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("lightWarnings", mqtt_message);
-			}else {
-				String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 20.1, Sensor: 2, Mensagem: \"" + "Rápida variação de temp registada no sensor 2"+ "\"}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("lightWarnings", mqtt_message);
-			}
-			
-			/* String message = "{_id: \"" + randomString+ "\", Hora: \"" + timestampString + "\", Leitura: 20.01, Sensor: 1}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("readings/temp", mqtt_message);*/
-			
-			
+			 * if(random <= 0.33) { String message = "{Tipo: \"" +"light_descartada" +
+			 * "\", Hora: \"" + timestampString +
+			 * "\", Leitura: 20.1, Sensor: 1, Mensagem: \"" +
+			 * "Rápida variação de temp registada no sensor 1"+ "\"}"; MqttMessage
+			 * mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); }else if(random <= 0.66){
+			 * String message = "{Tipo: \"" +"light_descartada" + "\", Hora: \"" +
+			 * timestampString + "\", Leitura: 20.1, Sensor: 2, Mensagem: \"" +
+			 * "Rápida variação de temp registada no sensor 1"+ "\"}"; MqttMessage
+			 * mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); } else { String message =
+			 * "{_id: \"" + randomString + "\", Hora: \"" + timestampString +
+			 * "\", SalaEntrada: 0, SalaSaida: 0}"; MqttMessage mqtt_message = new
+			 * MqttMessage(); mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("readings/mov", mqtt_message); }
+			 * 
+			 */
+
 			/*
-			if(random < 0.33) {
-				String message = "{Tipo: \"" +"Rápida variação temp" + "\", Hora: \"" + timestampString + "\", Sensor: 1, Mensagem: \"" + "Rápida variação de temp registada no sensor 1"+ "\"}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("lightWarnings", mqtt_message);
-			}else if(random < 0.66) {
-				String message = "{Tipo: \"" +"Entrada mov ratos" + "\", Hora: \"" + timestampString + "\", Sala: 2, Mensagem: \"" + "Rápida entrada na sala 2"+ "\"}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("lightWarnings", mqtt_message);
-			}else {
-				String message = "{Tipo: \"" +"Mensagem descartada" + "\", Hora: \"" + timestampString + "\", Leitura: 9.6, Mensagem: \"" + "Peguntar a syntax deste tipo de msg aos outros"+ "\"}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("lightWarnings", mqtt_message);
-			} 
-			*/
-			
-			if(random < 0.05) {
-				String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString + "\", SalaEntrada: 0, SalaSaida: 0}";
+			 * if(random <= 0.5) { String message = "{Tipo: \"" +"light_descartada" +
+			 * "\", Hora: \"" + timestampString +
+			 * "\", Leitura: 20.1, Sensor: 1, Mensagem: \"" +
+			 * "Rápida variação de temp registada no sensor 1"+ "\"}"; MqttMessage
+			 * mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); }else { String message =
+			 * "{Tipo: \"" +"light_descartada" + "\", Hora: \"" + timestampString +
+			 * "\", Leitura: 20.1, Sensor: 2, Mensagem: \"" +
+			 * "Rápida variação de temp registada no sensor 2"+ "\"}"; MqttMessage
+			 * mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); }
+			 * 
+			 * /* String message = "{_id: \"" + randomString+ "\", Hora: \"" +
+			 * timestampString + "\", Leitura: 20.01, Sensor: 1}"; MqttMessage mqtt_message
+			 * = new MqttMessage(); mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("readings/temp", mqtt_message);
+			 */
+
+			/*
+			 * if(random < 0.33) { String message = "{Tipo: \"" +"Rápida variação temp" +
+			 * "\", Hora: \"" + timestampString + "\", Sensor: 1, Mensagem: \"" +
+			 * "Rápida variação de temp registada no sensor 1"+ "\"}"; MqttMessage
+			 * mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); }else if(random < 0.66) {
+			 * String message = "{Tipo: \"" +"Entrada mov ratos" + "\", Hora: \"" +
+			 * timestampString + "\", Sala: 2, Mensagem: \"" + "Rápida entrada na sala 2"+
+			 * "\"}"; MqttMessage mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); }else { String message =
+			 * "{Tipo: \"" +"Mensagem descartada" + "\", Hora: \"" + timestampString +
+			 * "\", Leitura: 9.6, Mensagem: \"" +
+			 * "Peguntar a syntax deste tipo de msg aos outros"+ "\"}"; MqttMessage
+			 * mqtt_message = new MqttMessage();
+			 * mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("lightWarnings", mqtt_message); }
+			 */
+
+			if (random < 0.05) {
+				String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString
+						+ "\", SalaEntrada: 0, SalaSaida: 0}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
 				mqttclient.publish("readings/movs", mqtt_message);
-				}else if (random <= 0.5) {
-				
-				String message = "{_id: \"" + randomString+ "\", Hora: \"" + timestampString + "\", Leitura: 20.01, Sensor: 1}";
-				MqttMessage mqtt_message = new MqttMessage();
-				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("readings/temps", mqtt_message);
-			}else {
-					String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString + "\", SalaEntrada: 2, SalaSaida: 1}";
-					MqttMessage mqtt_message = new MqttMessage();
-					mqtt_message.setPayload(message.getBytes());
-					mqttclient.publish("readings/movs", mqtt_message);
 			}
-				/*
-				String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString + "\", SalaEntrada: 2, SalaSaida: 1}";
+//				else if (random <= 0.5) {
+//				
+//				String message = "{_id: \"" + randomString+ "\", Hora: \"" + timestampString + "\", Leitura: 20.01, Sensor: 1}";
+//				MqttMessage mqtt_message = new MqttMessage();
+//				mqtt_message.setPayload(message.getBytes());
+//				mqttclient.publish("readings/temps", mqtt_message);
+//			}
+			else {
+				String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString
+						+ "\", SalaEntrada: 1, SalaSaida: 2}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("readings/mov", mqtt_message);
-				*/
-				
-			
-			
-				
+				mqttclient.publish("readings/movs", mqtt_message);
+			}
+			/*
+			 * String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString
+			 * + "\", SalaEntrada: 2, SalaSaida: 1}"; MqttMessage mqtt_message = new
+			 * MqttMessage(); mqtt_message.setPayload(message.getBytes());
+			 * mqttclient.publish("readings/mov", mqtt_message);
+			 */
+
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
