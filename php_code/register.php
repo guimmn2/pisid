@@ -22,7 +22,7 @@ $random_password = random_str(8);
 //call DB SP according to role
 if ($role == 'investigador') {
         if ($stmt = $conn->prepare("CALL CreateInvestigator(?, ?, ? ,?)")) {
-                print_r($random_password);
+                print_r("pass: $random_password ");
                 $stmt->bind_param('ssss', $name, $phone, $email, $random_password);
                 if ($stmt->execute()) {
                         echo "registered investigator successfully";

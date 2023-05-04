@@ -1,51 +1,219 @@
 body {
     font-family: Arial, sans-serif;
     font-size: 16px;
+    background-color: #f1f1f1; 
 }
 
 label {
     display: block;
     margin-bottom: 10px;
+    color: #444; 
 }
 
-input[type="number"] {
-    padding: 5px;
+select {
+    padding: 10px;
     border-radius: 3px;
-    border: 1px solid #ccc;
+    border: none;
+    background-color: #f9f9f9; 
+    width: 100%; 
+    margin-bottom: 15px;
+    color: #444; 
+    font-size: 16px; 
 }
+
+input[type="text"], input[type="email"], input[type="password"], input[type="number"], select {
+    padding: 10px;
+    border-radius: 3px;
+    border: none;
+    background-color: #f9f9f9; 
+    width: 100%; 
+    margin-bottom: 15px;
+}
+
+textarea {
+    padding: 10px;
+    border-radius: 3px;
+    border: none;
+    background-color: #f9f9f9; 
+    width: 100%; 
+    margin-bottom: 15px;
+    color: #444; 
+    font-size: 16px; 
+    resize: vertical;
+  }
 
 input[type="submit"] {
     margin-top: 10px;
-    background-color: #2600ff;
+    background-color: #280dc0;
     color: white;
     border: none;
     border-radius: 3px;
     padding: 10px;
     cursor: pointer;
+    width: 100%; 
+    font-size: 18px; 
+    font-weight: bold; 
 }
 
 input[type="submit"]:hover {
-    background-color: #000000;
+    background-color: #111;
 }
 
-textarea {
-    width: 20%;
-    height: 200px;
-    padding: 50px;
+button[type="submit"] {
+    margin-top: 10px;
+    background-color: #280dc0;
+    color: white;
+    border: none;
     border-radius: 3px;
-    border: 1px solid #ccc;
-    font-size: 16px;
-  }
+    padding: 10px;
+    cursor: pointer;
+    width: 100%; 
+    font-size: 18px; 
+    font-weight: bold; 
+}
+
+button[type="submit"]:hover {
+    background-color: #111;
+}
 
 h1 {
     text-align: center;
     padding: 20px 0;
+    color: #444; 
 }
 
 form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 70vh;
+    width: 50%; 
+    margin: 0 auto; 
+    background-color: #fff; 
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #ccc; 
+}
+
+/* tabela */
+
+.table-container {
+    width:fit-content; 
+    margin: 0 auto; 
+    background-color: #fff; 
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #ccc;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  
+  table th,
+  table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  table th {
+    background-color: #f2f2f2;
+    color: #444;
+    font-weight: bold;
+  }
+  
+  /* botao q neste caso n é input */
+  button {
+    margin-top: 10px;
+    background-color: #280dc0;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    padding: 10px;
+    cursor: pointer;
+    width: 100%; 
+    font-size: 18px; 
+    font-weight: bold; 
+  }
+  
+  button:hover {
+    background-color: #111;
+  }
+  
+  /* link */
+  .pain_link:link, .pain_link:visited {
+    background-color:rgb(219, 31, 31);
+    color: white;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+  }
+  
+  .pain_link:hover , .pain_link:active {
+    background-color: red;
+  }
+  
+  
+  .container {
+    width: 50%; 
+    margin: 0 auto; 
+    background-color: #fff; 
+    padding: 30px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #ccc;
+}
+
+.exp-detail-title {
+    text-align: center;
+    padding: 20px 0;
+    color: #444; 
+}
+
+.exp-detail {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    grid-gap: 10px;
+    margin-bottom: 20px;
+}
+
+.exp-detail-label {
+    color: #444;
+}
+
+.exp-detail-value {
+    color: #666;
+}
+
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #280dc0;
+}
+  
+li {
+    float: left;
+}
+  
+li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+  
+li a:hover {
+    background-color: #111;
+}
+
+.logout-button {
+    color: #111;
+    background-color: #e1e0ee;
+}
+
+.logout-button:hover {
+    color: #e1e0ee;
+    background-color: #280dc0;
 }

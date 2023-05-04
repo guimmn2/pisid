@@ -7,7 +7,7 @@
 <body>
     <?php include ('navbar.php'); ?>
     <h1>Create Experience</h1>
-    <form method="post" action="create_experience.php">
+    <form method="post" action="bd_create_exp.php">
         <label for="numeroratos">Number of rats</label>
         <input type="number" id="numeroratos" name="numeroratos" required>
         <br>
@@ -26,7 +26,7 @@
         <label for="descricao">Description</label>
         <textarea id="descricao" name="descricao"></textarea>
         <br>
-        <input type="submit" value="Submit">
+        <input type="submit" name="submit" value="Submit">
     </form>
 </body>
 </html>
