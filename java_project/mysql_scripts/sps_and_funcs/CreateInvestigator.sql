@@ -24,7 +24,7 @@ BEGIN
   EXECUTE stmt;
   DEALLOCATE PREPARE stmt;
   FLUSH PRIVILEGES;
-  INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (name, phone, 'investigador', email);
+  INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (name, phone, 'inv', email);
   END IF;
 END$$
 DELIMITER ;

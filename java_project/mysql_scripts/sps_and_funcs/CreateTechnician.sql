@@ -30,6 +30,6 @@ BEGIN
   EXECUTE stmt;
   DEALLOCATE PREPARE stmt;
   FLUSH PRIVILEGES;
-  INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (name, phone, 'tecnico', email);
+  INSERT INTO utilizador (nome, telefone, tipo, email) VALUES (name, phone, 'tec', email);
 END$$
 DELIMITER ;
