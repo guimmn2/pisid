@@ -140,6 +140,16 @@ public class Backup extends JFrame implements MqttCallback {
 		try {
 			System.out.println("Server starting...");
 			ss = new ServerSocket(PORT);
+			
+			Runtime.getRuntime().addShutdownHook(new Thread(){
+				public void run() {
+					try {
+						ss.close();
+					}catch(IOException e) {
+						
+					}
+			}});
+			
 			startServer();
 
 		} catch (IOException e) {
@@ -179,7 +189,7 @@ public class Backup extends JFrame implements MqttCallback {
 				System.err.println("O CLOUD TO MONGO MORREU! ACUDAM!");
 				CloudToMongo.getInstance();
 				CloudToMongo.addMessagesReceived(messagesReceived);
-				System.out.println("O CLOUD TO MONGO EST√Å VIVO");
+				System.out.println("O CLOUD TO MONGO EST¡ VIVO");
 				break;
 				
 				//e.printStackTrace();

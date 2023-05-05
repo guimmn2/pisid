@@ -22,6 +22,8 @@ import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 @SuppressWarnings({ "deprecation"})
 public class CloudToMongo implements MqttCallback {
@@ -59,22 +61,22 @@ public class CloudToMongo implements MqttCallback {
 	private static LinkedBlockingQueue<Message> messagesReceived = new LinkedBlockingQueue<Message>();;
 
 	private static JFrame frame;
-	
+
 	private Socket conSocket;
 	public static final int PORT = 8080;
 	private static ObjectOutputStream out;
-	
-	
-	
-	
-	
+
+
+
+
+
 	public static CloudToMongo getInstance() {
 		if (instance == null) {
 			instance = new CloudToMongo();
 		}
 		return instance;
 	}
-	
+
 	public static void addMessagesReceived(LinkedBlockingQueue<Message> messages) {
 		messagesReceived.addAll(messages);
 	}
@@ -87,10 +89,10 @@ public class CloudToMongo implements MqttCallback {
 		JScrollPane scroll = new JScrollPane(documentLabel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
 		scroll.setPreferredSize(new Dimension(600, 200));
-		//		JButton b1 = new JButton("Stop the program");
+		JButton b1 = new JButton("Stop the program");
 		frame.getContentPane().add(textLabel, BorderLayout.PAGE_START);
 		frame.getContentPane().add(scroll, BorderLayout.CENTER);
-		//		frame.getContentPane().add(b1, BorderLayout.PAGE_END);
+		frame.getContentPane().add(b1, BorderLayout.PAGE_END);
 		frame.setLocationRelativeTo(null);
 		frame.pack();
 		frame.setVisible(true);
@@ -101,11 +103,11 @@ public class CloudToMongo implements MqttCallback {
 
 		// Set the caret to always scroll to the bottom of the text area
 		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-		//		b1.addActionListener(new ActionListener() {
-		//			public void actionPerformed(ActionEvent evt) {
-		//				System.exit(0);
-		//			}
-		//		});
+		b1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				System.exit(0);
+			}
+		});
 	}
 
 	public Container getContentPane() {
@@ -138,13 +140,13 @@ public class CloudToMongo implements MqttCallback {
 		}
 
 		connectToServer();
-		//		connectMongo();
+		connectMongo();
 		startMessageProcessing();
 		connecCloud();
-		
+
 	}
 
-	
+
 	public void connectToServer() {
 		try {
 			conSocket = new Socket("127.0.0.1", PORT);
@@ -162,7 +164,7 @@ public class CloudToMongo implements MqttCallback {
 			System.exit(1);
 		}
 	}
-	
+
 	private void connecCloud() {
 		int i;
 		try {
@@ -211,30 +213,30 @@ public class CloudToMongo implements MqttCallback {
 
 				while (true) {
 					try {
-						//						documentLabel.append("Messages Received CloudToMongo: ");
-						//						messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString());});
-						//						documentLabel.append("\n");
-						//
-						//
-						//						Message msg = messagesReceived.take();
-						//						documentLabel.append("Retrieved from queue: "+msg.toString());
-						//						getInstance().validateMessage(msg.getTopic(), msg.getMessage().toString(), msg);
-						for(int i=0; i<10;i++) {
-							Thread.sleep(5000);
-							documentLabel.append("Taking\n");
-							Message a = messagesReceived.take();
+						documentLabel.append("Messages Received CloudToMongo: ");
+						messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString());});
+						documentLabel.append("\n");
 
-							Thread.sleep(5000);
-							documentLabel.append("Validating\n");
 
-							documentLabel.append("Sent to Backup: "+a.toString()+"\n");
-							out.writeObject(a);
-							documentLabel.append("Messages Received After CloudToMongo: ");
-							messagesReceived.forEach((n)->{documentLabel.append(n.getMessage()+" | ");});
-							documentLabel.append("\n");
-						}
-						System.exit(1);
-					} catch (InterruptedException | IOException e) {
+						Message msg = messagesReceived.take();
+						documentLabel.append("Retrieved from queue: "+msg.toString());
+						getInstance().validateMessage(msg.getTopic(), msg.getMessage().toString(), msg);
+						
+						//						for(int i=0; i<10;i++) {
+						//							Thread.sleep(5000);
+						//							documentLabel.append("Taking\n");
+						//							Message a = messagesReceived.take();
+						//
+						//							Thread.sleep(5000);
+						//							documentLabel.append("Validating\n");
+						//
+						//							documentLabel.append("Sent to Backup: "+a.toString()+"\n");
+						//							out.writeObject(a);
+						//							documentLabel.append("Messages Received After CloudToMongo: ");
+						//							messagesReceived.forEach((n)->{documentLabel.append(n.getMessage()+" | ");});
+						//							documentLabel.append("\n");
+						//						}
+					} catch (InterruptedException e) {
 						documentLabel.append("Error while retriving from queue\n");
 					}
 				}
@@ -370,6 +372,12 @@ public class CloudToMongo implements MqttCallback {
 
 		}else {
 			documentLabel.append("Message Discarded INVALID NR OF FIELDS\n");
+			try {
+				out.writeObject(mensagem);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return;
 		}
 
@@ -415,6 +423,12 @@ public class CloudToMongo implements MqttCallback {
 		}else {
 
 			documentLabel.append("Message Discarded NOT VALID FIELDS\n");
+			try {
+				out.writeObject(mensagem);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return;
 		}
 	}
@@ -429,6 +443,12 @@ public class CloudToMongo implements MqttCallback {
 
 			if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
 				documentLabel.append("Message Discarded SENSOR\n");
+				try {
+					out.writeObject(mensagem);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				return;
 			}
 
@@ -516,6 +536,12 @@ public class CloudToMongo implements MqttCallback {
 		}else {
 
 			documentLabel.append("Message Discarded NOT VALID FIELDS\n");
+			try {
+				out.writeObject(mensagem);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return;
 		}
 	}
@@ -543,6 +569,12 @@ public class CloudToMongo implements MqttCallback {
 		}else {
 			createLightWarning("probAv", "", type, mensagem);
 			discardCounters[type] = 0;
+		}
+		try {
+			out.writeObject(mensagem);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 
@@ -646,6 +678,12 @@ public class CloudToMongo implements MqttCallback {
 
 		case "lightWarnings": lightWarnings.insert(document_json);	
 		break;
+		}
+		try {
+			out.writeObject(message);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 
 		documentLabel.append("Saved to Mongo and added to Queue\n");

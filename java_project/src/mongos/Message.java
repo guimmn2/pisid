@@ -43,11 +43,9 @@ public class Message implements Serializable{
 		if (anObject instanceof Message) {    
 			Message m =(Message)anObject;
 			if(this.getTopic().equals(m.getTopic()) && this.getMessage().toString().equals(m.getMessage().toString())) {
-				System.out.println("Topic and Payload equal");
 				return true;
 			}    
 		}
-		System.out.println("Not equals!");
 		return false;    
 	} 
 	
