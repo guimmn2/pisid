@@ -16,6 +16,8 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.io.*;
+import java.net.Socket;
+
 import javax.swing.*;
 import javax.swing.text.DefaultCaret;
 
@@ -54,32 +56,27 @@ public class CloudToMongo implements MqttCallback {
 	private int[] discardCounters = new int[3];
 	private double[]varSensors = new double[2];
 
-	private static LinkedBlockingQueue<Message> messagesReceived;
-	private static Queue<Message> messagesSaved;
+	private static LinkedBlockingQueue<Message> messagesReceived = new LinkedBlockingQueue<Message>();;
 
 	private static JFrame frame;
-
+	
+	private Socket conSocket;
+	public static final int PORT = 8080;
+	private static ObjectOutputStream out;
+	
+	
+	
+	
+	
 	public static CloudToMongo getInstance() {
 		if (instance == null) {
 			instance = new CloudToMongo();
 		}
 		return instance;
 	}
-
-	public LinkedBlockingQueue<Message> getMessagesReceived() {
-		return messagesReceived;
-	}
-
-	public void addMessagesReceived(LinkedBlockingQueue<Message> messagesReceived) {
-		CloudToMongo.messagesReceived.addAll(messagesReceived);
-	}
-
-	public  Queue<Message> getMessagesSaved() {
-		return messagesSaved;
-	}
-
-	public  void addMessagesSaved(Queue<Message> messagesSaved) {
-		CloudToMongo.messagesSaved.addAll(messagesSaved);
+	
+	public static void addMessagesReceived(LinkedBlockingQueue<Message> messages) {
+		messagesReceived.addAll(messages);
 	}
 
 	private static void createWindow() {
@@ -140,14 +137,32 @@ public class CloudToMongo implements MqttCallback {
 					JOptionPane.ERROR_MESSAGE);
 		}
 
-		messagesReceived = new LinkedBlockingQueue<Message>();
-		messagesSaved = new LinkedList<Message>();
-
+		connectToServer();
 		//		connectMongo();
 		startMessageProcessing();
 		connecCloud();
+		
 	}
 
+	
+	public void connectToServer() {
+		try {
+			conSocket = new Socket("127.0.0.1", PORT);
+			documentLabel.append("Connecting to address: 127.0.0.1 on port: " + PORT+"\n");
+		} catch (IOException e) {
+			System.err.println("Error connecting to server.");
+			System.exit(1);
+		}
+
+		try {
+			out = new ObjectOutputStream(conSocket.getOutputStream());
+
+		} catch (IOException e) {
+			System.err.println("Error setting up Streams.");
+			System.exit(1);
+		}
+	}
+	
 	private void connecCloud() {
 		int i;
 		try {
@@ -212,14 +227,14 @@ public class CloudToMongo implements MqttCallback {
 							Thread.sleep(5000);
 							documentLabel.append("Validating\n");
 
-							messagesSaved.add(a);
-							documentLabel.append("Added to saved: "+a.toString()+"\n");
+							documentLabel.append("Sent to Backup: "+a.toString()+"\n");
+							out.writeObject(a);
 							documentLabel.append("Messages Received After CloudToMongo: ");
-							messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString()+" | ");});
+							messagesReceived.forEach((n)->{documentLabel.append(n.getMessage()+" | ");});
 							documentLabel.append("\n");
 						}
 						System.exit(1);
-					} catch (InterruptedException e) {
+					} catch (InterruptedException | IOException e) {
 						documentLabel.append("Error while retriving from queue\n");
 					}
 				}
@@ -240,9 +255,8 @@ public class CloudToMongo implements MqttCallback {
 			messagesReceived.put(a);
 			documentLabel.append("Added to queue: "+a.toString()+"\n");
 			documentLabel.append("Messages Received Before CloudToMongo: ");
-			messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString()+" | ");});
+			messagesReceived.forEach((n)->{documentLabel.append(n.getMessage()+" | ");});
 			documentLabel.append("\n");
-
 		} catch (InterruptedException e) {
 			documentLabel.append("Error while putting message in queue\n");
 		}
@@ -531,11 +545,7 @@ public class CloudToMongo implements MqttCallback {
 			discardCounters[type] = 0;
 		}
 
-		messagesSaved.add(mensagem);
 
-		documentLabel.append("Messages Saved: ");
-		messagesSaved.forEach((n)->{documentLabel.append(n.getMessage().toString());});
-		documentLabel.append("\n");
 	}
 
 	/** This function creates a DBObject 'lightWarning' with the given type.
@@ -639,11 +649,6 @@ public class CloudToMongo implements MqttCallback {
 		}
 
 		documentLabel.append("Saved to Mongo and added to Queue\n");
-		messagesSaved.add(message);
-
-		documentLabel.append("Messages Saved: ");
-		messagesSaved.forEach((n)->{documentLabel.append(n.getMessage().toString());});
-		documentLabel.append("\n");
 	}
 
 	private void alterVarCounters(String type, DBObject document_json, Message message) {

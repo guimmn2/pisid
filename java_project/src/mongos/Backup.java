@@ -2,8 +2,13 @@ package mongos;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Random;
@@ -25,17 +30,20 @@ public class Backup extends JFrame implements MqttCallback {
 	MqttClient mqttclient;
 	static String cloud_server = new String();
 	static String cloud_topic = new String();
-	private static CloudToMongo ctm;
-    private Timer timer;
-    private static Queue<Message> messagesSaved; 
+	private Timer timer;
 
+	private ServerSocket ss;
+	public static final int PORT = 8080;
+
+	private ObjectInputStream in;
+	
 	public static Backup getInstance() {
 		if (instance == null) {
 			instance = new Backup();
 		}
 		return instance;
 	}
-	
+
 	private Backup() {
 		super("Backup Cloud To Mongo");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -55,8 +63,8 @@ public class Backup extends JFrame implements MqttCallback {
 
 		// Set the caret to always scroll to the bottom of the text area
 		caret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-		
-		
+
+
 		Properties p = new Properties();
 		try {
 			p.load(new FileInputStream("config_files/CloudToMongo.ini"));
@@ -67,10 +75,11 @@ public class Backup extends JFrame implements MqttCallback {
 			JOptionPane.showMessageDialog(null, "The CloudToMongo.inifile wasn't found.", "CloudToMongo",
 					JOptionPane.ERROR_MESSAGE);
 		}
-		
+
 		messagesReceived = new LinkedBlockingQueue<Message>();
-		ctm = CloudToMongo.getInstance();
-		messagesSaved = ctm.getMessagesSaved();
+
+
+
 		int i;
 		try {
 			i = new Random().nextInt(100000);
@@ -82,38 +91,29 @@ public class Backup extends JFrame implements MqttCallback {
 		} catch (MqttException e) {
 			e.printStackTrace();
 		}
-		
+
 
 		setVisible(true);
-		
-		 timer = new Timer();
-	        timer.schedule(new TimerTask() {
-	            @Override
-	            public void run() {
-	            	
-	            	textArea.append("Messages Received Before Backup: ");
-	            	messagesReceived.forEach((n)->{textArea.append(n.getMessage().toString()+" | ");});
-	            	textArea.append("\n");
-	            	
-	            	textArea.append("Messages Saved: ");
-	            	messagesSaved.forEach((n)->{textArea.append(n.getMessage().toString()+" | ");});
-	            	textArea.append("\n");
-	            	
-	                if (messagesSaved.isEmpty() && !messagesReceived.isEmpty()) {
-	                    // Assume that the CloudToMongo instance is dead and restart it
-	                	textArea.append("O MONGO MORREU!\n");
-	            		textArea.append("---------------------------\n");
-	                	restartCloudToMongo();
-	                }else {
-	                	messagesReceived.removeAll(messagesSaved);
-	                	messagesSaved.clear();
-	                	textArea.append("Messages Received After Backup: ");
-		            	messagesReceived.forEach((n)->{textArea.append(n.getMessage().toString()+" | ");});
-		            	textArea.append("\n");
-	                }
-	                
-	            }
-	        }, 10000, 10000);
+
+		initServer();
+
+
+	}
+
+	private void startTimer() {
+		timer = new Timer();
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+
+				textArea.append("Messages Received Before Backup: ");
+				messagesReceived.forEach((n)->{textArea.append(n.getMessage()+" | ");});
+				textArea.append("\n");
+
+
+
+			}
+		}, 10000, 10000);
 	}
 
 	@Override
@@ -135,10 +135,59 @@ public class Backup extends JFrame implements MqttCallback {
 	public void deliveryComplete(IMqttDeliveryToken token) {
 		// Not used in this example
 	}
-	
-	private void restartCloudToMongo() {
-		ctm = CloudToMongo.getInstance();
-		ctm.addMessagesReceived(messagesReceived);
+
+	private void initServer() {
+		try {
+			System.out.println("Server starting...");
+			ss = new ServerSocket(PORT);
+			startServer();
+
+		} catch (IOException e) {
+			System.err.println("Cannot init Server");
+			System.exit(1);
+		}
+	}
+
+	private void startServer() {
+		try {
+			
+			System.out.println("Waiting for connection...");
+			Socket conSocket = ss.accept();
+
+			System.out.println("Connection received: " + conSocket.toString());
+			in = new ObjectInputStream(conSocket.getInputStream());
+			startTimer();
+			serve();
+			
+		} catch (IOException e) {
+			System.err.println("Error starting Server");
+		}	
+	}
+
+	private void serve() {
+		while (true) {
+			try {
+				textArea.append("Waiting for Input\n");
+				Message clientInput = (Message) in.readObject();
+				textArea.append("client input: " + clientInput.toString()+"\n");
+				messagesReceived.removeIf((n)->n.equals(clientInput));
+				
+				textArea.append("Messages Received after: ");
+				messagesReceived.forEach((n)->textArea.append(n+" | "));
+				textArea.append("\n");
+			} catch (IOException | ClassNotFoundException e) {
+				System.err.println("O CLOUD TO MONGO MORREU! ACUDAM!");
+				CloudToMongo.getInstance();
+				CloudToMongo.addMessagesReceived(messagesReceived);
+				System.out.println("O CLOUD TO MONGO ESTÁ VIVO");
+				break;
+				
+				//e.printStackTrace();
+			}
+
+		}
+		
+		startServer();
 	}
 
 	public static void main(String[] args) {
