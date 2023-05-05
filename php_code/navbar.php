@@ -7,8 +7,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == INVESTIGATOR) {
   echo '
   <nav>
     <ul>
-      <li><a href="experience_list.php">Experiences</a></li>
-      <li><a href="ui_create_exp.php">Create Experience</a></li>
+      <li><a href="experience_list.php">Experiências</a></li>
+      <li><a href="ui_create_exp.php">Criar Experiência</a></li>
       <li style="float:right"><a class="logout-button" href="logout.php">Log out</a></li>
     </ul>
   </nav>
@@ -18,8 +18,8 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == INVESTIGATOR) {
   echo '
   <nav>
     <ul>
-      <li><a href="experience_list.php">Experiences</a></li>
-      <li><a href="register.html">Create Investigator</a></li>
+      <li><a href="experience_list.php">Experiências</a></li>
+      <li><a href="register.html">Registar Utilizador</a></li>
       <li style="float:right"><a class="logout-button" href="logout.php">Log out</a></li>
     </ul>
   </nav>
