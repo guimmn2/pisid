@@ -5,7 +5,7 @@ include('utils/init.php');
 $email = $_POST['email'];
 $password = $_POST['password'];
 
-$dbConn = new DbConn(DB, HOST, $email, $password, '3307');
+$dbConn = new DbConn(DB, HOST, $email, $password);
 $conn = $dbConn->getConn();
 
 //validate if role is assigned to person
