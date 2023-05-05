@@ -9,17 +9,6 @@
 
 <body>
 	<div>
-		<?php
-		//start the session
-		session_start();
-
-		//display confirmation message if set
-		if(isset($_SESSION['message'])) {
-			echo "<p>" . $_SESSION['message'] . "</p>";
-			//unset message once it has been displayed
-			unset($_SESSION['message']);
-		}
-		?>
 		<h1>Login</h1>
 		<form action="login.php" method="post" autocomplete="off">
 			<label for="email"> Email

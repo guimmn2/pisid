@@ -94,9 +94,13 @@
     //close connection here ???
     $conn->close();
 
-    //show button to create experience
-    echo "<a href='ui_create_exp.php'><button>Create Experience</button></a>
-";
+    if ($_SESSION['role'] == INVESTIGATOR) {
+        //show button to create experience
+        echo "<a href='ui_create_exp.php'><button>Create Experience</button></a>";
+    } else {
+        // go to register.html
+        echo "<a href='register.html'><button>Register Investigator</button></a>";
+    }
     ?>
 </body>
 

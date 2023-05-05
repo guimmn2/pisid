@@ -23,7 +23,7 @@ if ($role == INVESTIGATOR || $role == TECHNICIAN) {
     die();
 
 } else if ($role == ADMIN_APP || $role == ADMIN) {
-    header('Location: register.html');
+    header('Location: experience_list.php');
     die();
 } else {
     echo "Failed to authenticate.";

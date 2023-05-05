@@ -19,7 +19,7 @@ class DbConn
 
     //establish connection
     private function connect() {
-        $this->conn = new mysqli($this->host, $this->email, $this->password, $this->db, '3306');
+        $this->conn = new mysqli($this->host, $this->email, $this->password, $this->db, '3307');
         if ($this->conn->connect_errno) {
             die('Could not connect to DB '. $this->conn->connect_error);
         }
