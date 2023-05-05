@@ -71,6 +71,7 @@ public class CloudToMongo implements MqttCallback {
 
 
 	public static CloudToMongo getInstance() {
+		
 		if (instance == null) {
 			instance = new CloudToMongo();
 		}
@@ -729,6 +730,7 @@ public class CloudToMongo implements MqttCallback {
 	}
 
 	public static void main(String[] args) {
+		
 		getInstance();	
 	}
 }

@@ -3,7 +3,13 @@ import java.awt.*;
 import javax.swing.*;
 
 public class RunAllMongoRelated {
+	
+	CloudToMongo ctm ;
+    Backup bck;
+	
     public static void main(String[] args) {
+    	
+    	
         CloudToMongo ctm = CloudToMongo.getInstance();
         Backup bck = Backup.getInstance();
         

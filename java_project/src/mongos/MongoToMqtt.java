@@ -63,7 +63,7 @@ public class MongoToMqtt implements MqttCallback {
 
 		lightWarnings.insertOne(lightWarning);
 		lightWarning.remove("_id");
-		lightWarning.remove("createdAt");
+		//lightWarning.remove("createdAt");
 		documentLabel.append(lightWarning.toJson().toString() + "\n");
 		mqttclient.publish(topic_lightWarnings, lightWarning.toJson().toString().getBytes(), 2, true);
 
@@ -94,7 +94,7 @@ public class MongoToMqtt implements MqttCallback {
 				MongoCursor<Document> cursor = db.getCollection(mongo_collection).find(eq("sent",0)).iterator();	            
 				while (cursor.hasNext()) {
 					Document doc = cursor.next();
-					doc.remove("createdAt");
+				//	doc.remove("createdAt");
 					doc.remove("sent");
 					String payload = doc.toJson();
 					documentLabel.append(payload.toString() + "\n");
@@ -162,7 +162,7 @@ public class MongoToMqtt implements MqttCallback {
 				MongoCursor<Document> cursor_1 = db.getCollection(mongo_collection_1).find(eq("sent", 0)).iterator();
 				while (cursor_1.hasNext()) {
 					Document doc = cursor_1.next();
-					doc.remove("createdAt");
+					//doc.remove("createdAt");
 					doc.remove("sent");
 					if(Integer.parseInt(doc.get("SalaEntrada").toString()) == 0 && Integer.parseInt(doc.get("SalaSaida").toString()) == 0) {
 						String payload = doc.toJson();
@@ -268,7 +268,7 @@ public class MongoToMqtt implements MqttCallback {
 				MongoCursor<Document> cursor_2 = db.getCollection(mongo_collection_2).find(eq("sent", 0)).iterator();
 				while (cursor_2.hasNext()) {
 					Document doc = cursor_2.next();
-					doc.remove("createdAt");
+					//doc.remove("createdAt");
 					doc.remove("sent");
 
 					if(doc.get("Tipo").equals("MongoDB_status") && cursor_2.hasNext()) {
