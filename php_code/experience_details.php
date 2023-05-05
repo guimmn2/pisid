@@ -24,15 +24,16 @@
     if ($_SESSION['role'] == INVESTIGATOR) {
         if ($stmt = $conn->prepare('SELECT * 
                                     FROM experiencia
-                                    INNER JOIN parametrosadicionais
-                                    ON experiencia.id = parametrosadicionais.IDExperiencia
+                                    INNER JOIN parametrosadicionais ON experiencia.id = parametrosadicionais.IDExperiencia
+                                    INNER JOIN medicoessala ON experiencia.id = medicoessala.IDExperiencia
                                     WHERE experiencia.id = ? AND experiencia.investigador = ?')) {
             $stmt->bind_param('is', $id, $email);
             $stmt->execute();
             $result = $stmt->get_result();
+            print_r($result);
         } else {
-            die('something went wrong');
-        }
+            die('something went wrong ' . $stmt->error);
+        } 
     }
     else if ($_SESSION['role'] == ADMIN_APP) {
         if ($stmt = $conn->prepare('SELECT * FROM experiencia WHERE id = ?')) {
@@ -50,20 +51,40 @@
     } else {
         $row = $result->fetch_assoc();
         print_r($row);
-        echo "<div class='container'>";
-        echo "<h2 class='exp-detail-title'>Experience Detail</h2>";
-        echo "<div class='exp-detail'>";
-        echo "<p class='exp-detail-label'>ID:</p><p class='exp-detail-value'>" . $row['id'] . "</p>";
-        echo "<p class='exp-detail-label'>Email do Investigador:</p><p class='exp-detail-value'><strong>" . $row['investigador'] . "</strong></p>";
-        echo "<p class='exp-detail-label'>Descrição:</p><p class='exp-detail-value'>" . $row['descricao'] . "</p>";
-        echo "<p class='exp-detail-label'>Data de Registro:</p><p class='exp-detail-value'>" . $row['DataRegisto'] . "</p>";
-        echo "<p class='exp-detail-label'>Número de ratos:</p><p class='exp-detail-value'>" . $row['numeroratos'] . "</p>";
-        echo "<p class='exp-detail-label'>Limite de ratos por sala:</p><p class='exp-detail-value'>" . $row['limiteratossala'] . "</p>";
-        echo "<p class='exp-detail-label'>Segundos sem Moviment:</p><p class='exp-detail-value'>" . $row['segundossemmovimento'] . "</p>";
-        echo "<p class='exp-detail-label'>Temperatura Ideal:</p><p class='exp-detail-value'>" . $row['temperaturaideal'] . "</p>";
-        echo "<p class='exp-detail-label'>Variação Máxima de Temperatura:</p><p class='exp-detail-value'>" . $row['variacaotemperaturamaxima'] . "</p>";
-        echo "<p class='exp-detail-label'>Motivo de termino:</p><p class='exp-detail-value'>" . $row['MotivoTermino'] . "</p>";
-        echo "</div>";
+
+        
+        echo "<div class='table-container'>";
+        // experiencia
+        echo "<h2 class='exp-detail-title'>Detail 1</h2>";
+        echo "<table>";
+        echo "<tr><th>ID</th><th>Email do Investigador</th><th>Descrição</th><th>Data de Registro</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura</th><th>";
+        echo "<tr>";
+        echo "<td>" . $row['id'] . "</td>";
+        echo "<td>" . $row['investigador'] . "</td>";
+        echo "<td>" . $row['descricao'] . "</td>";
+        echo "<td>" . $row['DataRegisto'] . "</td>";
+        echo "<td>" . $row['numeroratos'] . "</td>";
+        echo "<td>" . $row['limiteratossala'] . "</td>";
+        echo "<td>" . $row['segundossemmovimento'] . "</td>";
+        echo "<td>" . $row['temperaturaideal'] . "</td>";
+        echo "<td>" . $row['variacaotemperaturamaxima'] . "</td>"; 
+        echo "</tr>";
+        echo "</table>";
+        
+        // parametrosadicionais
+        echo "<h2 class='exp-detail-title'>Detail 2</h2>";
+        echo "<table>";
+        echo "<tr><th>Data de início da experiência</th><th>Data de fim da experiência</th><th>Descrição</th><th>Motivo de termino</th><th>Data em que as portas externas foram abertas</th><th>Periodicidade de alerta</th><th>";
+        echo "<tr>";
+        echo "<td>" . $row['DataHoraInicio'] . "</td>";
+        echo "<td>" . $row['DataHoraFim'] . "</td>";
+        echo "<td>" . $row['MotivoTermino'] . "</td>";
+        echo "<td>" . $row['DataHoraPortasExtAbertas'] . "</td>";
+        echo "<td>" . $row['PeriodicidadeAlerta'] . "</td>";
+        echo "</tr>";
+        echo "</table>";
+
+        // fim da div
         echo "</div>";
     }
     $conn->close();
