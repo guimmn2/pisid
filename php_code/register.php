@@ -28,6 +28,7 @@ if ($role == 'investigador') {
                         echo "registered investigator successfully";
                         //TODO
                         //send email to user with creds
+                        header('Location: experience_list.php');
                 } else {
                         echo "not able to register investigator, try again later";
                 }
