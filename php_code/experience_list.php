@@ -53,9 +53,9 @@
     } else {
         // display the list of experiences, por motivos de maldição tive q criar um container diferente para a lista de exp
         echo "<div class='table-container'>";
-        echo "<h2 class='exp-detail-title'>Your Experiences</h2>";
+        echo "<h2 class='exp-detail-title'>Experiências</h2>";
         echo "<table>";
-        echo "<tr><th>ID</th><th>Descrição</th><th>Investigador</th><th>Data de Registro</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura</th><th>Detalhe</th></tr>";
+        echo "<tr><th>ID</th><th>Descrição</th><th>Investigador</th><th>Data de Registo</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura</th><th>Detalhe</th></tr>";
         while ($row = $results->fetch_assoc()) {
             echo "<tr>";
             echo "<td>" . $row['id'] . "</td>";
@@ -96,10 +96,10 @@
 
     if ($_SESSION['role'] == INVESTIGATOR) {
         //show button to create experience
-        echo "<a href='ui_create_exp.php'><button>Create Experience</button></a>";
+        echo "<a href='ui_create_exp.php'><button>Criar Experiência</button></a>";
     } else {
         // go to register.html
-        echo "<a href='register.html'><button>Register Investigator</button></a>";
+        echo "<a href='register.html'><button>Registar Utilizador</button></a>";
     }
     ?>
 </body>

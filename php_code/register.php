@@ -8,7 +8,7 @@ include('utils/init.php');
 if ($_SESSION['role'] != ADMIN_APP) {
         echo "not allowed";
         die();
-} 
+}
 
 $dbConn = new DbConn(DB, HOST, $_SESSION['email'], $_SESSION['password']);
 $conn = $dbConn->getConn();
@@ -26,8 +26,6 @@ if ($role == 'investigador') {
                 $stmt->bind_param('ssss', $name, $phone, $email, $random_password);
                 if ($stmt->execute()) {
                         echo "registered investigator successfully";
-                        //TODO
-                        //send email to user with creds
                         header('Location: experience_list.php');
                 } else {
                         echo "not able to register investigator, try again later";
