@@ -22,17 +22,37 @@
 
     // get the detail of the experience of the id from the link in the previous page and the currentuser
     if ($_SESSION['role'] == INVESTIGATOR) {
+        // query experiencia
         if ($stmt = $conn->prepare('SELECT * 
                                     FROM experiencia
-                                    INNER JOIN parametrosadicionais ON experiencia.id = parametrosadicionais.IDExperiencia
-                                    INNER JOIN medicoessala ON experiencia.id = medicoessala.IDExperiencia
                                     WHERE experiencia.id = ? AND experiencia.investigador = ?')) {
             $stmt->bind_param('is', $id, $email);
             $stmt->execute();
             $result = $stmt->get_result();
-            print_r($result);
         } else {
             die('something went wrong ' . $stmt->error);
+        } 
+
+        // query parametrosadicionais
+        if ($stmt1 = $conn->prepare('SELECT * 
+                                    FROM experiencia, parametrosadicionais
+                                    WHERE experiencia.id = ? AND experiencia.investigador = ?')) {
+        $stmt1->bind_param('is', $id, $email);
+        $stmt1->execute();
+        $result2 = $stmt1->get_result();
+        } else {
+            die('something went wrong ' . $stmt1->error);
+        } 
+
+        // query medicoessala
+        if ($stmt2 = $conn->prepare('SELECT * 
+                                    FROM experiencia, medicoessala
+                                    WHERE experiencia.id = ? AND medicoessala.IDExperiencia = ? AND experiencia.investigador = ?')) {
+        $stmt2->bind_param('iis', $id, $id, $email);
+        $stmt2->execute();
+        $result3 = $stmt2->get_result();
+        } else {
+            die('something went wrong ' . $conn->error);
         } 
     }
     else if ($_SESSION['role'] == ADMIN_APP) {
@@ -48,16 +68,30 @@
         // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
         // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
         echo "not found";
+        if ($result2->num_rows == 0) {
+            // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
+            // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
+            echo "not found";
+        }
+        if ($result3->num_rows == 0) {
+            // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
+            // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
+            echo "not found";
+        }
     } else {
         $row = $result->fetch_assoc();
-        print_r($row);
+        $row1 = $result2->fetch_assoc();
+        //$row2 = $result3->fetch_assoc();
+        //print_r($row);
+        //print_r($row1);
+        //print_r($row2);
 
         
         echo "<div class='table-container'>";
         // experiencia
-        echo "<h2 class='exp-detail-title'>Detail 1</h2>";
+        echo "<h2 class='exp-detail-title'>Detalhes da Experiência</h2>";
         echo "<table>";
-        echo "<tr><th>ID</th><th>Email do Investigador</th><th>Descrição</th><th>Data de Registro</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura</th><th>";
+        echo "<tr><th>ID</th><th>Email do Investigador</th><th>Descrição</th><th>Data de Registro</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura";
         echo "<tr>";
         echo "<td>" . $row['id'] . "</td>";
         echo "<td>" . $row['investigador'] . "</td>";
@@ -72,18 +106,57 @@
         echo "</table>";
         
         // parametrosadicionais
-        echo "<h2 class='exp-detail-title'>Detail 2</h2>";
+        echo "<h2 class='exp-detail-title'>Parametros Adicionais</h2>";
         echo "<table>";
-        echo "<tr><th>Data de início da experiência</th><th>Data de fim da experiência</th><th>Descrição</th><th>Motivo de termino</th><th>Data em que as portas externas foram abertas</th><th>Periodicidade de alerta</th><th>";
+        echo "<tr><th>Data de início da experiência</th><th>Data de fim da experiência</th><th>Motivo de termino</th><th>Data em que as portas externas foram abertas</th><th>Periodicidade de alerta";
         echo "<tr>";
-        echo "<td>" . $row['DataHoraInicio'] . "</td>";
-        echo "<td>" . $row['DataHoraFim'] . "</td>";
-        echo "<td>" . $row['MotivoTermino'] . "</td>";
-        echo "<td>" . $row['DataHoraPortasExtAbertas'] . "</td>";
-        echo "<td>" . $row['PeriodicidadeAlerta'] . "</td>";
+        echo "<td>" . $row1['DataHoraInicio'] . "</td>";
+        echo "<td>" . $row1['DataHoraFim'] . "</td>";
+        echo "<td>" . $row1['MotivoTermino'] . "</td>";
+        echo "<td>" . $row1['DataHoraPortasExtAbertas'] . "</td>";
+        echo "<td>" . $row1['PeriodicidadeAlerta'] . "</td>";
         echo "</tr>";
         echo "</table>";
 
+        // TODO 
+        // medicoessala e odoresexperiencia
+        echo "<h2 class='exp-detail-title'>Medições sala e odores experiência</h2>";
+        echo "<table>";
+        echo "<tr><th>Sala</th><th>Código Odor</th><th>Número de ratos final</th></tr>";
+        if ($result3->num_rows > 0) {
+            $row2 = $result->fetch_assoc();
+            while ($row2 = $result3->fetch_assoc()) {
+                echo "<tr>";
+                echo "<td>" . $row2['sala'] . "</td>";
+                echo "<td>PHP depression</td>";
+                echo "<td>" . $row2['numeroratosfinal'] . "</td>";
+                echo "</tr>";
+            }
+        } 
+        echo "</table>";
+
+        // TODO
+        // substanciasexperiencia
+        echo "<h2 class='exp-detail-title'>Substância experiência</h2>";
+        echo "<table>";
+        echo "<tr><th>Número de ratos</th><th>Código da substância</th><th>";
+        echo "<tr>";
+        echo "<td>21</td>";
+        echo "<td>COVID</td>";
+        echo "</tr>";
+        echo "<tr>";
+        echo "<td>12</td>";
+        echo "<td>php disease</td>";
+        echo "</tr>";
+        echo "<tr>";
+        echo "<td>12</td>";
+        echo "<td>html depression</td>";
+        echo "</tr>";
+        echo "</table>";
+
+        // TODO
+        // botão para abrir as portas
+        echo "<a href='experience_list.php'><button>Abrir portas exteriores</button></a>";
         // fim da div
         echo "</div>";
     }
