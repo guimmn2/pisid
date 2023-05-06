@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Your Experiences</title>
+    <title>Lista de Experiências</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
@@ -84,7 +84,7 @@
             echo "<td>" . $row['segundossemmovimento'] . "</td>";
             echo "<td>" . $row['temperaturaideal'] . "</td>";
             echo "<td>" . $row['variacaotemperaturamaxima'] . "</td>";
-            echo "<td><a href='experience_details.php?id=" . $row['id'] . "' class='pain_link'>Details</a></td>";
+            echo "<td><a href='experience_details.php?id=" . $row['id'] . "' class='pain_link'>Detalhes</a></td>";
             echo "</tr>";
             echo "</div>";
         }

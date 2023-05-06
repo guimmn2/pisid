@@ -2,43 +2,46 @@
 <html>
 
 <head>
-    <title>Create Experience</title>
+    <title>Criar Experiência</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body>
-    <!-- <?php include ('navbar.php'); ?> -->
-    <h1>Create Experience</h1>
+    <?php include ('navbar.php'); ?>
+    <h1>Criar Experiência</h1>
     <form method="post" action="bd_create_exp.php">
-        <label for="numeroratos">Number of rats</label>
+        <label for="numeroratos">Número de ratos</label>
         <input type="number" id="numeroratos" name="numeroratos" required>
         <br>
-        <label for="limiteratossala">Limit of rats per room</label>
+        <label for="limiteratossala">Limite de ratos por sala</label>
         <input type="number" id="limiteratossala" name="limiteratossala" required>
         <br>
-        <label for="segundossemmovimento">Seconds without movement</label>
+        <label for="segundossemmovimento">Segundos sem movimento</label>
         <input type="number" id="segundossemmovimento" name="segundossemmovimento" required>
         <br>
-        <label for="temperaturaideal">Ideal temperature</label>
+        <label for="temperaturaideal">Temperatura Ideal</label>
         <input type="number" id="temperaturaideal" name="temperaturaideal" required>
         <br>
-        <label for="variacaotemperaturamaxima">Maximum temperature variaton</label>
+        <label for="variacaotemperaturamaxima">Variação temperatura máxima</label>
         <input type="number" id="variacaotemperaturamaxima" name="variacaotemperaturamaxima" required>
         <br>
-        <label for="descricao">Description</label>
+        <label for="descricao">Descrição</label>
         <textarea id="descricao" name="descricao"></textarea>
+        <label for="descricao">Substâncias</label>
         <div id="substances">
-            <input type="text" name="substance" id="substance" placeholder="substancia">
-            <input type="number" name="ratsCount" id="ratsCount" placeholder="número de ratos">
+            <input type="text" name="substance" id="substance" placeholder="Substância">
+            <input type="number" name="ratsCount" id="ratsCount" placeholder="Número de ratos">
         </div>
-        <button type="button" id="substance-btn">Mais substâncias</button>
+        <button type="button" id="substance-btn">Adicionar mais substâncias</button>
+        <br><br>
+        <label for="descricao">Odores</label>
         <div id="odors">
-            <input type="text" name="odor" id="odor" placeholder="odor">
-            <input type="number" name="room" id="room" placeholder="rooms">
+            <input type="text" name="odor" id="odor" placeholder="Odor">
+            <input type="number" name="room" id="room" placeholder="Sala">
         </div>
-        <button type="button" id="odor-btn">Mais odores</button>
-        <br>
-        <input type="submit" name="submit" value="Submit">
+        <button type="button" id="odor-btn">Adicionar mais odores</button>
+        <br><br><br>
+        <input type="submit" name="submit" value="Criar Experiência">
     </form>
 </body>
     <script>
