@@ -17,7 +17,10 @@
 
     //get experiences and show list of experiences
     if ($_SESSION['role'] == INVESTIGATOR) {
-        if ($stmt = $conn->prepare('SELECT * FROM experiencia WHERE investigador = ?')) {
+        if ($stmt = $conn->prepare('SELECT experiencia.*, parametrosadicionais.DataHoraInicio, parametrosadicionais.DataHoraFim 
+                                    FROM experiencia 
+                                    INNER JOIN parametrosadicionais ON experiencia.id = parametrosadicionais.IDExperiencia
+                                    WHERE experiencia.investigador = ?')) {
             $stmt->bind_param('s', $_SESSION['email']);
             $stmt->execute();
             $results = $stmt->get_result();
@@ -55,7 +58,7 @@
         echo "<div class='table-container'>";
         echo "<h2 class='exp-detail-title'>Experiências</h2>";
         echo "<table>";
-        echo "<tr><th>ID</th><th>Descrição</th><th>Investigador</th><th>Data de Registo</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura</th><th>Detalhe</th></tr>";
+        echo "<tr><th>ID</th><th>Descrição</th><th>Investigador</th><th>Data de Registo</th><th>Número de Ratos</th><th>Limite de Ratos na Sala</th><th>Segundos sem Movimento</th><th>Temperatura Ideal</th><th>Variação Máxima de Temperatura</th><th>Estado da Experiência</th><th>Detalhe</th></tr>";
         while ($row = $results->fetch_assoc()) {
             echo "<tr>";
             echo "<td>" . $row['id'] . "</td>";
@@ -84,6 +87,13 @@
             echo "<td>" . $row['segundossemmovimento'] . "</td>";
             echo "<td>" . $row['temperaturaideal'] . "</td>";
             echo "<td>" . $row['variacaotemperaturamaxima'] . "</td>";
+            if (is_null($row['DataHoraInicio']) && is_null($row['DataHoraFim'])) {
+                echo "<td>Experiência na fila de espera</td>";
+            } else if (!is_null($row['DataHoraInicio']) && is_null($row['DataHoraFim'])) {
+                echo "<td>Experiência a decorrer</td>";
+            } else {
+                echo "<td>Experiência acabou</td>";
+            }
             echo "<td><a href='experience_details.php?id=" . $row['id'] . "' class='pain_link'>Detalhes</a></td>";
             echo "</tr>";
             echo "</div>";
