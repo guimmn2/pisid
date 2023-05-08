@@ -201,7 +201,7 @@
                     echo "<td>N/A</td>";
                 }
                 if (is_null($row3['numeroratos']) || $row3['numeroratos'] == 0) {
-                    echo "<td>Não aplicada</td>";
+                    echo "<td>Substância não aplicada</td>";
                 } else {
                     echo "<td>" . $row3['numeroratos'] . "</td>";
                 }
@@ -213,7 +213,7 @@
         if (is_null($row1['DataHoraInicio']) || is_null($row1['DataHoraFim'])) {
             // TODO
             // adicionar aqui um pop up ou uma info a dizer o pq do ivnestigador n poder abrir as portas exteriores
-            echo "<button disabled>Abrir portas exteriores</button>";
+            echo "<script>alert('Não é possível abrir as portas exteriores se a experiência ainda não começou ou está a decorrer!');</script>";
         } else {
             if (is_null($row1['DataHoraPortasExtAbertas'])) {
                 // botão para abrir as portas exteriores
@@ -222,6 +222,7 @@
                 // TODO
                 // adicionar aqui um pop up ou uma info a dizer o pq do investigador n poder abrir as portas exteriores
                 echo "<button disabled>Abrir portas exteriores</button>";
+                echo "<script>alert('Não é abrir as portas se esta já foi aberta!');</script>";
             }
         }
 
@@ -238,6 +239,7 @@
             // exp ja começou então não pode editar (no caso do botao de editar, podemos ou meter disable ou simplesmente não mostrar)
             // adicionamos também um pop up ou uma msg ao user a dizer q n pode editar pq a exp ja acabou/começou
             echo "<button disabled>Editar experiência</button>";
+            echo "<script>alert('A experiência já acabou ou está a decorrer!');</script>";
         }
         // fim da div
         echo "</div>";

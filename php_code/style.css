@@ -217,3 +217,19 @@ li a:hover {
     color: #e1e0ee;
     background-color: #280dc0;
 }
+
+.subs_div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.subs_div input[type="number"] {
+    width: 150px;
+    padding: 8px;
+    border-radius: 3px;
+    border: none;
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+}

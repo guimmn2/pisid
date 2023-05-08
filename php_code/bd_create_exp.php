@@ -50,31 +50,41 @@
         }
     }
 
+
     // escrever na substanciaexperiencia
-    if (isset($_POST['substance'])) {
-        $substances = $_POST['substance'];
-    } else {
-        $substances = array();
-    }
-    if (isset($_POST['ratsCount'])) {
-        $num_ratos = $_POST['ratsCount'];
-    } else {
-        $num_ratos = array();
-    }
-    print_r($substances);
+    $php_rats = $_POST['php_rats'];
+    $peste_rats = $_POST['peste_rats'];
+    $covid_rats = $_POST['covid_rats'];
+    $lepra_rats = $_POST['lepra_rats'];
+    $raiva_rats = $_POST['raiva_rats'];
 
-    foreach($substances as $key => $substance) {
-        $num_ratos_substance = $num_ratos['substance'][$key];
-        if ($subs_stmt = $conn->prepare("INSERT INTO substanciasexperiencia (numeroratos, codigosubstancia, IDExperiencia) VALUES (?, ?, ?)")) {
-            $subs_stmt->bind_param('isi', $num_ratos_substance, $substance, $exp_created_id);
-            $subs_stmt->execute();
-            print_r("PLS WORK!!!!");
-        }
-    }
-    
-    
+    if ($subs_stmt = $conn->prepare("INSERT INTO substanciasexperiencia (numeroratos, codigosubstancia, IDExperiencia) VALUES (?, ?, ?)")) {
+        $php = 'PHP';
+        $subs_stmt->bind_param('isi', $php_rats, $php, $exp_created_id);
+        $subs_stmt->execute();
+        print_r('PLS WORK!!');
 
-    
-    //header('Location: experience_list.php');
-    //mysqli_close($conn);
+        $peste = 'Peste';
+        $subs_stmt->bind_param('isi', $peste_rats, $peste, $exp_created_id);
+        $subs_stmt->execute();
+        print_r('PLS WORK!!');
+        
+        $covid = 'Covid';
+        $subs_stmt->bind_param('isi', $covid_rats, $covid, $exp_created_id);
+        $subs_stmt->execute();
+        print_r('PLS WORK!!');
+        
+        $lepra = 'Lepra';
+        $subs_stmt->bind_param('isi', $lepra_rats, $lepra, $exp_created_id);
+        $subs_stmt->execute();
+        print_r('PLS WORK!!');
+        
+        $raiva = 'Raiva';
+        $subs_stmt->bind_param('isi', $raiva_rats, $raiva, $exp_created_id);
+        $subs_stmt->execute();
+        print_r('PLS WORK!!');
+
+    }
+    header('Location: experience_list.php');
+    mysqli_close($conn);
     ?>

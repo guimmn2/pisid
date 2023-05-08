@@ -27,21 +27,16 @@
         <br>
         <label for="descricao">Descrição</label>
         <textarea id="descricao" name="descricao"></textarea>
-        <label for="descricao">Substâncias</label>
-        <div id="substances">
-            <select name="substance[]">
-                <option value ="" selected disabled>--Escolha uma substância--</option>
-                <option value ="PHP">PHP</option>
-                <option value ="Peste">Peste</option>
-                <option value ="Covid">Covid</option>
-                <option value ="Lepra">Lepra</option>
-                <option value ="Raiva">Raiva</option>
-            </select>
-            <input type="number" name="ratsCount[substance]" placeholder="Número de ratos">
+        <h1>Substâncias</h1>
+        <div class="subs_div">
+            <label for="php">PHP<br><input type="number" id="php_rats" name="php_rats" placeholder="Número de ratos"></label>
+            <label for="peste">Peste<br><input type="number" id="peste_rats" name="peste_rats" placeholder="Número de ratos"></label>
+            <label for="covid">Covid<br><input type="number" id="covid_rats" name="covid_rats" placeholder="Número de ratos"></label>
+            <label for="lepra">Lepra<br><input type="number" id="lepra_rats" name="lepra_rats" placeholder="Número de ratos"></label>
+            <label for="raiva">Raiva<br><input type="number" id="raiva_rats" name="raiva_rats" placeholder="Número de ratos"></label>           
         </div>
-        <button type="button" id="substance-btn">Adicionar mais substâncias</button>
         <br><br>
-        <label for="descricao">Odores</label>
+        <h1>Odores</h1>
         <div id="odors">
             <select name="odor[]">
                 <option value ="" selected disabled>--Escolha um odor--</option>
@@ -71,15 +66,8 @@
     </form>
 </body>
     <script>
-
-        const substanceBtn = document.getElementById('substance-btn');
         const odorBtn = document.getElementById('odor-btn');
-        const substanceToDuplicate = document.getElementById('substances');
         const odorToDuplicate = document.getElementById('odors');
-
-        substanceBtn.addEventListener('click', function () {
-            duplicateElement(substanceToDuplicate.id);
-        });
 
         odorBtn.addEventListener('click', function () {
             duplicateElement(odorToDuplicate.id);
@@ -104,12 +92,21 @@
             const limiteratossala = document.getElementById('limiteratossala').value;
             const temperaturaideal = document.getElementById('temperaturaideal').value;
             const variacaotemperaturamaxima = document.getElementById('variacaotemperaturamaxima').value;
+            const php_rats = document.getElementById('php_rats').value;
+            const peste_rats = document.getElementById('peste_rats').value;
+            const covid_rats = document.getElementById('covid_rats').value;
+            const lepra_rats = document.getElementById('lepra_rats').value;
+            const raiva_rats = document.getElementById('raiva_rats').value;
+
+
             const temp_format = /^(\d+|\d+.\d+)$/;
             if (limiteratossala > numeroratos) {
                 alert('O limite de ratos por sala não pode ser maior que o número de ratos.');
                 event.preventDefault(); 
+            } else if (php_rats > numeroratos || peste_rats > numeroratos || covid_rats > numeroratos || lepra_rats > numeroratos || raiva_rats > numeroratos) {
+                alert('Não é possível aplicar uma substância em uma quantidade de ratos maior do que o número de ratos escolhidos para a experiência');
+                event.preventDefault();
             }
-
             if (!temp_format.test(temperaturaideal) || !temp_format.test(variacaotemperaturamaxima)) {
                 alert('Formato errado para Temperatura Ideal ou Variação máxima de temperatura.');
                 event.preventDefault(); 
@@ -118,5 +115,4 @@
         });
 
     </script>
-
 </html>
