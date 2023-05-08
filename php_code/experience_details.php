@@ -174,9 +174,13 @@
                 if (!is_null($row2['codigoodor'])) {
                     echo "<td>" . $row2['codigoodor'] . "</td>";
                 } else {
-                    echo "<td>N/A</td>";
+                    echo "<td>Não foi escolhido um odor para esta sala</td>";
                 }
-                echo "<td>" . $row2['numeroratosfinal'] . "</td>";
+                if (is_null($row2['numeroratosfinal']) || $row2['numeroratosfinal'] == 0) {
+                    echo "<td>0</td>";
+                } else {
+                    echo "<td>" . $row2['numeroratosfinal'] . "</td>";
+                }
                 echo "</tr>";
             }
         } 

@@ -29,40 +29,40 @@
         <textarea id="descricao" name="descricao"></textarea>
         <label for="descricao">Substâncias</label>
         <div id="substances">
-            <select name="substance">
+            <select name="substance[]">
                 <option value ="" selected disabled>--Escolha uma substância--</option>
-                <option value ="colera">Cólera</option>
-                <option value ="peste">Peste</option>
-                <option value ="covid">Covid</option>
-                <option value ="lepra">Lepra</option>
-                <option value ="raiva">Raiva</option>
+                <option value ="PHP">PHP</option>
+                <option value ="Peste">Peste</option>
+                <option value ="Covid">Covid</option>
+                <option value ="Lepra">Lepra</option>
+                <option value ="Raiva">Raiva</option>
             </select>
-            <input type="number" name="ratsCount" id="ratsCount" placeholder="Número de ratos">
+            <input type="number" name="ratsCount[substance]" placeholder="Número de ratos">
         </div>
         <button type="button" id="substance-btn">Adicionar mais substâncias</button>
         <br><br>
         <label for="descricao">Odores</label>
         <div id="odors">
-            <select name="odor">
+            <select name="odor[]">
                 <option value ="" selected disabled>--Escolha um odor--</option>
-                <option value ="flores">Flores</option>
-                <option value ="cheiro_a_php">O mal cheiro do PHP</option>
-                <option value ="soja">Soja</option>
-                <option value ="hortela">Hortelã</option>
-                <option value ="ovo">Ovo</option>
+                <option value ="1005">1005</option>
+                <option value ="2005">2005</option>
+                <option value ="3005">3005</option>
+                <option value ="4005">4005</option>
+                <option value ="6005">6005</option>
             </select>
-            <select name="room">
+            <select name="room[]">
                 <option value ="" selected disabled>--Escolha uma sala--</option>
-                <option value ="room1">1</option>
-                <option value ="room2">2</option>
-                <option value ="room3">3</option>
-                <option value ="room4">4</option>
-                <option value ="room5">5</option>
-                <option value ="room6">6</option>
-                <option value ="room7">7</option>
-                <option value ="room8">8</option>
-                <option value ="room8">9</option>
-                <option value ="room10">10</option>
+                <option value ="1">1</option>
+                <option value ="2">2</option>
+                <option value ="3">3</option>
+                <option value ="4">4</option>
+                <option value ="5">5</option>
+                <option value ="6">6</option>
+                <option value ="7">7</option>
+                <option value ="8">8</option>
+                <option value ="9">9</option>
+                <option value ="10">10</option>
             </select>
         </div>
         <button type="button" id="odor-btn">Adicionar mais odores</button>
