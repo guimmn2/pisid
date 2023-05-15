@@ -221,11 +221,13 @@
         } 
         echo "</table>";
 
+        // TODO
         // substanciasexperiencia
         echo "<h2 class='exp-detail-title'>Substâncias Experiência</h2>";
         echo "<table>";
         echo "<tr><th>Código da Substância</th><th>Número Ratos</th></tr>";
         if ($result4->num_rows > 0) {
+            //$row2 = $result->fetch_assoc();
             while ($row3 = $result4->fetch_assoc()) {
                 echo "<tr>";
                 if (!is_null($row3['codigosubstancia'])) {
@@ -260,8 +262,9 @@
                 echo "<button disabled>Editar experiência</button>";
             }
         }
-        // fim da div
-        echo "</div>";
+            // fim da div
+            echo "</div>";
+        }   
     }
     $conn->close();
     
