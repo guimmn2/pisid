@@ -33,7 +33,7 @@
     }
     //se for admin_app obter todas as experiências
     else if ($_SESSION['role'] == ADMIN_APP) {
-        if ($stmt = $conn->prepare('SELECT * FROM experiencia')) {
+        if ($stmt = $conn->prepare('SELECT * FROM experiencia, parametrosadicionais WHERE experiencia.id = parametrosadicionais.IDExperiencia')) {
             $stmt->execute();
             $results = $stmt->get_result();
             $stmt->close();

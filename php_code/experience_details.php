@@ -83,24 +83,59 @@
         } else {
             die('something went wrong');
         }
+        // query parametrosadicionais
+        if ($stmt1 = $conn->prepare('SELECT * 
+                                    FROM experiencia, parametrosadicionais
+                                    WHERE experiencia.id = ? AND parametrosadicionais.IDExperiencia = ?')) {
+                                    $stmt1->bind_param('ii', $id, $id);
+                                    $stmt1->execute();
+                                    $result2 = $stmt1->get_result();
+        } else {
+            die('something went wrong ' . $stmt1->error);
+        } 
+
+        // query medicoessala
+        if ($stmt2 = $conn->prepare('SELECT experiencia.*, medicoessala.numeroratosfinal, medicoessala.sala, odoresexperiencia.codigoodor
+                                    FROM experiencia
+                                    INNER JOIN medicoessala ON experiencia.id = medicoessala.IDExperiencia
+                                    LEFT JOIN (
+                                    SELECT sala, MIN(codigoodor) AS codigoodor
+                                    FROM odoresexperiencia
+                                    WHERE IDExperiencia = ?
+                                    GROUP BY sala
+                                    LIMIT 10
+                                    ) odoresexperiencia ON medicoessala.sala = odoresexperiencia.sala
+                                    WHERE experiencia.id = ?
+                                    LIMIT 10
+                                    ')) {
+        $stmt2->bind_param('ii', $id, $id);
+        $stmt2->execute();
+        $result3 = $stmt2->get_result();
+        } else {
+            die('something went wrong ' . $conn->error);
+        } 
+
+        // query substanciasexperiencia
+        if ($stmt3 = $conn->prepare('SELECT experiencia.id, substanciasexperiencia.numeroratos, substanciasexperiencia.codigosubstancia
+                                    FROM experiencia, substanciasexperiencia
+                                    WHERE experiencia.id = ? AND substanciasexperiencia.IDExperiencia = ?')) {
+        $stmt3->bind_param('ii', $id, $id);
+        $stmt3->execute();
+        $result4 = $stmt3->get_result();
+        } else {
+            die('something went wrong ' . $stmt3->error);
+        } 
+
     }
     if ($result->num_rows == 0) {
-        // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
-        // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
         echo "not found";
         if ($result2->num_rows == 0) {
-            // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
-            // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
             echo "not found";
         }
         if ($result3->num_rows == 0) {
-            // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
-            // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
             echo "not found";
         }
         if ($result4->num_rows == 0) {
-            // n sei se isto é mt provavel de acontecer já que é um link baseado numa experiência vindo da lista de
-            // experiências mas por via das dúvidas vou validar ja q foi feito para os outros statements
             echo "not found";
         }
     } else {
@@ -210,36 +245,38 @@
         } 
         echo "</table>";
 
-        if (is_null($row1['DataHoraInicio']) || is_null($row1['DataHoraFim'])) {
+        if ($_SESSION['role'] == INVESTIGATOR) {
+            if (is_null($row1['DataHoraInicio']) || is_null($row1['DataHoraFim'])) {
+                // TODO
+                // adicionar aqui um pop up ou uma info a dizer o pq do ivnestigador n poder abrir as portas exteriores
+                //echo "<script>alert('Não é possível abrir as portas exteriores se a experiência ainda não começou ou está a decorrer!');</script>";
+            } else {
+                if (is_null($row1['DataHoraPortasExtAbertas'])) {
+                    // botão para abrir as portas exteriores
+                    echo "<a href='open_ext_doors.php?id=". $id ."'><button>Abrir portas exteriores</button></a>";
+                } else {
+                    // TODO
+                    // adicionar aqui um pop up ou uma info a dizer o pq do investigador n poder abrir as portas exteriores
+                    echo "<button disabled>Abrir portas exteriores</button>";
+                    //echo "<script>alert('Não é abrir as portas se esta já foi aberta!');</script>";
+                }
+            }
+    
             // TODO
-            // adicionar aqui um pop up ou uma info a dizer o pq do ivnestigador n poder abrir as portas exteriores
-            echo "<script>alert('Não é possível abrir as portas exteriores se a experiência ainda não começou ou está a decorrer!');</script>";
-        } else {
-            if (is_null($row1['DataHoraPortasExtAbertas'])) {
-                // botão para abrir as portas exteriores
-                echo "<a href='open_ext_doors.php?id=". $id ."'><button>Abrir portas exteriores</button></a>";
+            // botão para editar experiência (a principio so edita os dados q ele meteu na criação da exp)
+            // n sei se volta para a pagina da criação de exp com os dados para preencher outra vez ou algo mais sofisticado
+            // acho que o mais facil seria ele simplesmente ir pra ui_create_exp.php ou uma parecida e simplesmente fazer uma query de update da exp em questão, mas tem q se validar na mesma
+            // como se fosse a primeira vez a criar a exp
+            if (is_null($row1['DataHoraInicio'])) {
+                // pode editar
+                echo "<button>Editar experiência</button>"; 
             } else {
                 // TODO
-                // adicionar aqui um pop up ou uma info a dizer o pq do investigador n poder abrir as portas exteriores
-                echo "<button disabled>Abrir portas exteriores</button>";
-                echo "<script>alert('Não é abrir as portas se esta já foi aberta!');</script>";
+                // exp ja começou então não pode editar (no caso do botao de editar, podemos ou meter disable ou simplesmente não mostrar)
+                // adicionamos também um pop up ou uma msg ao user a dizer q n pode editar pq a exp ja acabou/começou
+                echo "<button disabled>Editar experiência</button>";
+                //echo "<script>alert('A experiência já acabou ou está a decorrer!');</script>";
             }
-        }
-
-        // TODO
-        // botão para editar experiência (a principio so edita os dados q ele meteu na criação da exp)
-        // n sei se volta para a pagina da criação de exp com os dados para preencher outra vez ou algo mais sofisticado
-        // acho que o mais facil seria ele simplesmente ir pra ui_create_exp.php ou uma parecida e simplesmente fazer uma query de update da exp em questão, mas tem q se validar na mesma
-        // como se fosse a primeira vez a criar a exp
-        if (is_null($row1['DataHoraInicio'])) {
-            // pode editar
-            echo "<button>Editar experiência</button>"; 
-        } else {
-            // TODO
-            // exp ja começou então não pode editar (no caso do botao de editar, podemos ou meter disable ou simplesmente não mostrar)
-            // adicionamos também um pop up ou uma msg ao user a dizer q n pode editar pq a exp ja acabou/começou
-            echo "<button disabled>Editar experiência</button>";
-            echo "<script>alert('A experiência já acabou ou está a decorrer!');</script>";
         }
         // fim da div
         echo "</div>";
