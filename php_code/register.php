@@ -43,5 +43,6 @@ if ($role == 'investigador') {
                 }
         }
 }
-//reset form ? go back to form ? dunno ...
+header('Location: investigator_list.php');
+
 ?>

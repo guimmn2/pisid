@@ -13,7 +13,7 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == INVESTIGATOR) {
     </ul>
   </nav>
   '; 
-} else {
+} else if (isset($_SESSION['role']) && $_SESSION['role'] == ADMIN_APP){
   // mostrar nav do admin
   echo '
   <nav>
@@ -21,6 +21,15 @@ if (isset($_SESSION['role']) && $_SESSION['role'] == INVESTIGATOR) {
       <li><a href="experience_list.php">Experiências</a></li>
       <li><a href="register.html">Registar Utilizador</a></li>
       <li><a href="investigator_list.php">Lista de investigadores</a></li>
+      <li style="float:right"><a class="logout-button" href="logout.php">Log out</a></li>
+    </ul>
+  </nav>
+  ';
+} else if (isset($_SESSION['role']) && $_SESSION['role'] == TECHNICIAN) {
+  echo '
+  <nav>
+    <ul>
+      <li><a href="experience_list.php">Experiências</a></li>
       <li style="float:right"><a class="logout-button" href="logout.php">Log out</a></li>
     </ul>
   </nav>

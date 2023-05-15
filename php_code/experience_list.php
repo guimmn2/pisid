@@ -51,6 +51,18 @@
         }
     }
 
+    if ($_SESSION['role'] == TECHNICIAN) {
+        if ($stmt = $conn->prepare('SELECT * FROM experiencia, parametrosadicionais WHERE experiencia.id = parametrosadicionais.IDExperiencia')) {
+            $stmt->execute();
+            $results = $stmt->get_result();
+            $stmt->close();
+        } else {
+            //TODO
+            //handle this better
+            die('You do not have the permissions my man...');
+        }
+    }
+
     if ($results->num_rows == 0) {
         echo "Nenhuma experiencia a mostrar";
     } else {

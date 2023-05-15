@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Your Experiences</title>
+    <title>User list</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
@@ -14,7 +14,10 @@
     $dbConn = new DbConn(DB, HOST, $_SESSION['email'], $_SESSION['password']);
     $conn = $dbConn->getConn();
 
-    if ($stmt = $conn->prepare('SELECT * FROM utilizador') ) {
+    if ($stmt = $conn->prepare('SELECT * FROM utilizador WHERE tipo = ? OR tipo = ?') ) {
+        $inv = INVESTIGATOR;
+        $tec = TECHNICIAN;
+        $stmt->bind_param('ss', $inv, $tec);
         $stmt->execute();
         $results = $stmt->get_result();
         $stmt->close();
@@ -38,7 +41,7 @@
             echo "<td>" . $row['tipo'] . "</td>";
             // TODO 
             // o BUTAO de apagar user
-            echo "<td><a href='experience_details.php?id=" . $row['email'] . "' class='pain_link'>Apagar</a></td>";
+            echo "<td><a href='delete_investigator.php?email=" . $row['email'] . "' class='pain_link'>Apagar</a></td>";
             echo "</tr>";
         }
         echo "</div>";
