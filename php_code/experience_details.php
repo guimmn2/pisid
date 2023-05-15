@@ -221,13 +221,11 @@
         } 
         echo "</table>";
 
-        // TODO
         // substanciasexperiencia
         echo "<h2 class='exp-detail-title'>Substâncias Experiência</h2>";
         echo "<table>";
         echo "<tr><th>Código da Substância</th><th>Número Ratos</th></tr>";
         if ($result4->num_rows > 0) {
-            //$row2 = $result->fetch_assoc();
             while ($row3 = $result4->fetch_assoc()) {
                 echo "<tr>";
                 if (!is_null($row3['codigosubstancia'])) {
@@ -247,35 +245,19 @@
 
         if ($_SESSION['role'] == INVESTIGATOR) {
             if (is_null($row1['DataHoraInicio']) || is_null($row1['DataHoraFim'])) {
-                // TODO
-                // adicionar aqui um pop up ou uma info a dizer o pq do ivnestigador n poder abrir as portas exteriores
-                //echo "<script>alert('Não é possível abrir as portas exteriores se a experiência ainda não começou ou está a decorrer!');</script>";
             } else {
                 if (is_null($row1['DataHoraPortasExtAbertas'])) {
-                    // botão para abrir as portas exteriores
                     echo "<a href='open_ext_doors.php?id=". $id ."'><button>Abrir portas exteriores</button></a>";
                 } else {
-                    // TODO
-                    // adicionar aqui um pop up ou uma info a dizer o pq do investigador n poder abrir as portas exteriores
                     echo "<button disabled>Abrir portas exteriores</button>";
-                    //echo "<script>alert('Não é abrir as portas se esta já foi aberta!');</script>";
-                }
             }
     
-            // TODO
-            // botão para editar experiência (a principio so edita os dados q ele meteu na criação da exp)
-            // n sei se volta para a pagina da criação de exp com os dados para preencher outra vez ou algo mais sofisticado
-            // acho que o mais facil seria ele simplesmente ir pra ui_create_exp.php ou uma parecida e simplesmente fazer uma query de update da exp em questão, mas tem q se validar na mesma
-            // como se fosse a primeira vez a criar a exp
+            //TODO 
             if (is_null($row1['DataHoraInicio'])) {
                 // pode editar
                 echo "<button>Editar experiência</button>"; 
             } else {
-                // TODO
-                // exp ja começou então não pode editar (no caso do botao de editar, podemos ou meter disable ou simplesmente não mostrar)
-                // adicionamos também um pop up ou uma msg ao user a dizer q n pode editar pq a exp ja acabou/começou
                 echo "<button disabled>Editar experiência</button>";
-                //echo "<script>alert('A experiência já acabou ou está a decorrer!');</script>";
             }
         }
         // fim da div

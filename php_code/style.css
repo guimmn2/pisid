@@ -138,6 +138,16 @@ table {
   button:hover {
     background-color: #111;
   }
+
+  button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  button[disabled]:hover {
+    background-color: #280dc0;
+    cursor: not-allowed;
+  }
   
   /* link */
   .pain_link:link, .pain_link:visited {
