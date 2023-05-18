@@ -71,7 +71,7 @@ public class CloudToMongo implements MqttCallback {
 
 
 	public static CloudToMongo getInstance() {
-		
+
 		if (instance == null) {
 			instance = new CloudToMongo();
 		}
@@ -214,29 +214,11 @@ public class CloudToMongo implements MqttCallback {
 
 				while (true) {
 					try {
-						documentLabel.append("Messages Received CloudToMongo: ");
-						messagesReceived.forEach((n)->{documentLabel.append(n.getMessage().toString());});
-						documentLabel.append("\n");
-
 
 						Message msg = messagesReceived.take();
-						documentLabel.append("Retrieved from queue: "+msg.toString());
+
 						getInstance().validateMessage(msg.getTopic(), msg.getMessage().toString(), msg);
-						
-						//						for(int i=0; i<10;i++) {
-						//							Thread.sleep(5000);
-						//							documentLabel.append("Taking\n");
-						//							Message a = messagesReceived.take();
-						//
-						//							Thread.sleep(5000);
-						//							documentLabel.append("Validating\n");
-						//
-						//							documentLabel.append("Sent to Backup: "+a.toString()+"\n");
-						//							out.writeObject(a);
-						//							documentLabel.append("Messages Received After CloudToMongo: ");
-						//							messagesReceived.forEach((n)->{documentLabel.append(n.getMessage()+" | ");});
-						//							documentLabel.append("\n");
-						//						}
+
 					} catch (InterruptedException e) {
 						documentLabel.append("Error while retriving from queue\n");
 					}
@@ -256,10 +238,7 @@ public class CloudToMongo implements MqttCallback {
 		try {
 			Message a = new Message(topic, c);
 			messagesReceived.put(a);
-			documentLabel.append("Added to queue: "+a.toString()+"\n");
-			documentLabel.append("Messages Received Before CloudToMongo: ");
-			messagesReceived.forEach((n)->{documentLabel.append(n.getMessage()+" | ");});
-			documentLabel.append("\n");
+
 		} catch (InterruptedException e) {
 			documentLabel.append("Error while putting message in queue\n");
 		}
@@ -312,10 +291,10 @@ public class CloudToMongo implements MqttCallback {
 				String dateAndTime = hour[1].replace("\"", "").trim().replace("'","");
 
 				if (!dateAndTime.matches("^[0-9: -\\.]*$")) {
-					documentLabel.append("A Hora cont�m letras\n");
+					documentLabel.append("A Hora contem letras\n");
 					String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 					documentLabel.append(
-							"New Message com hora atualizada devido �exist�ncia de letras: " + newMessage + "\n");
+							"New Message com hora atualizada devido à existência de letras: " + newMessage + "\n");
 					message = newMessage;
 				}else {
 					// criamos o objeto dateTime do tipo LocalDateTime para poder mais tarde fazer
@@ -345,7 +324,7 @@ public class CloudToMongo implements MqttCallback {
 							// Caso a data da mensagem atual seja anterior à da ultima mensagem recebida,
 							// entao substituímos
 							if (dateTime.compareTo(recentDate) < 2) {
-								documentLabel.append("A data da mensagem � anterior �da mais recente que temos\n");
+								documentLabel.append("A data da mensagem é anterior à mais recente que temos\n");
 								String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 								documentLabel.append("New Message com hora atualizada: " + newMessage + "\n");
 								message=newMessage;
@@ -354,7 +333,7 @@ public class CloudToMongo implements MqttCallback {
 					}catch (Exception e) {
 						String newMessage = "{Hora: \"" + mostRecentDate + "\", " + fields[1].trim() + ", " + fields[2].trim() + "}";
 						documentLabel.append(
-								"New Message com hora atualizada devido �exist�ncia de letras: " + newMessage + "\n");
+								"New Message com hora atualizada devido à exist�ncia de letras: " + newMessage + "\n");
 						message = newMessage;
 					}
 				}
@@ -444,6 +423,7 @@ public class CloudToMongo implements MqttCallback {
 
 			if(!sensor[1].equals("1") && !sensor[1].equals("2") ) {
 				documentLabel.append("Message Discarded SENSOR\n");
+				discardMessage(Integer.parseInt(sensor[1]), message, mensagem);
 				try {
 					out.writeObject(mensagem);
 				} catch (IOException e) {
@@ -473,6 +453,7 @@ public class CloudToMongo implements MqttCallback {
 				//Substituir todas as letras pela média.
 
 				if(!temperatura[1].matches("^-?[0-9]+(\\.[0-9]+)?$") ) {
+
 					String aux = temperatura[1];
 					String[] numbersArray = aux.replaceAll("[^0-9]","").split("");
 					int average;
@@ -495,13 +476,14 @@ public class CloudToMongo implements MqttCallback {
 
 					aux = aux.replaceAll("[^0-9]", Integer.toString(average));
 
+
 					//Criar nova mensagem com a temperatura alterada
 
 					fields[0] = fields[0].replaceFirst(":", ": ");
 					fields[1] = fields[1].replace(":", ": ");
 					fields[2] = fields[2].replace(":", ": ");
 
-					String newMessage = "{" + fields[0]+", "+fields[1]+", Leitura: "+temperatura[0]+"."+aux+"}";
+					String newMessage = "{" + fields[0]+", Leitura: "+temperatura[0]+"."+aux+ ", "+fields[2] +"}";
 					documentLabel.append("New Message: " + newMessage+ "\n");
 
 					//Substituímos a mensagem recebida pela nova mensagem correta
@@ -563,13 +545,19 @@ public class CloudToMongo implements MqttCallback {
 		String[] aux = message.split(",");
 		String newMessage = "{" + aux[1] + ", " + aux[2] + "}";
 
-
-		if(discardCounters[type] < 3) {
+		if(type != 0 || type != 1 || type != 2) {
 			createLightWarning("disc", newMessage, 0, mensagem);
-			discardCounters[type]++;
-		}else {
-			createLightWarning("probAv", "", type, mensagem);
-			discardCounters[type] = 0;
+		}
+		else {
+
+			if(discardCounters[type] < 3) {
+				createLightWarning("disc", newMessage, 0, mensagem);
+				discardCounters[type]++;
+			}else {
+
+				createLightWarning("probAv", "", type, mensagem);
+				discardCounters[type] = 0;
+			}
 		}
 		try {
 			out.writeObject(mensagem);
@@ -608,7 +596,7 @@ public class CloudToMongo implements MqttCallback {
 
 			lightWarning.put("Tipo", "light_temp");		
 			lightWarning.put("Sensor", SensorOrRoom);
-			lightWarning.put("Mensagem", "R�pida varia��o da temperatura registada no sensor " + SensorOrRoom +".");
+			lightWarning.put("Mensagem", "Rápida variação da temperatura registada no sensor " + SensorOrRoom +".");
 			documentLabel.append("Created LightWarning light_temp\n");
 			break;
 
@@ -623,7 +611,12 @@ public class CloudToMongo implements MqttCallback {
 
 			lightWarning.put("Tipo", "avaria");
 			lightWarning.put("Sensor", SensorOrRoom);
-			lightWarning.put("Mensagem", "Prov�vel avaria no sensor "+ SensorOrRoom + ".");
+			if(SensorOrRoom == 0) {
+				lightWarning.put("Mensagem", "Provável avaria no sensor de medição no movimento dos ratos.");
+				documentLabel.append("Created LightWarning avaria\n");
+				break;
+			}
+			lightWarning.put("Mensagem", "Provável avaria no sensor "+ SensorOrRoom + ".");
 			documentLabel.append("Created LightWarning avaria\n");
 			break;
 
@@ -730,7 +723,7 @@ public class CloudToMongo implements MqttCallback {
 	}
 
 	public static void main(String[] args) {
-		
+
 		getInstance();	
 	}
 }

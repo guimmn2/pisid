@@ -70,6 +70,7 @@ public class Backup extends JFrame implements MqttCallback {
 			p.load(new FileInputStream("config_files/CloudToMongo.ini"));
 			cloud_server = p.getProperty("cloud_server");
 			cloud_topic = p.getProperty("cloud_topic");
+			//cloud_topic = "test_rats";
 		} catch (IOException e1) {
 			System.out.println("Error reading CloudToMongo.ini file " + e1);
 			JOptionPane.showMessageDialog(null, "The CloudToMongo.inifile wasn't found.", "CloudToMongo",
@@ -100,21 +101,21 @@ public class Backup extends JFrame implements MqttCallback {
 
 	}
 
-	private void startTimer() {
-		timer = new Timer();
-		timer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-
-				textArea.append("Messages Received Before Backup: ");
-				messagesReceived.forEach((n)->{textArea.append(n.getMessage()+" | ");});
-				textArea.append("\n");
-
-
-
-			}
-		}, 10000, 10000);
-	}
+//	private void startTimer() {
+//		timer = new Timer();
+//		timer.schedule(new TimerTask() {
+//			@Override
+//			public void run() {
+//
+//				textArea.append("Messages Received Before Backup: ");
+//				messagesReceived.forEach((n)->{textArea.append(n.getMessage()+" | ");});
+//				textArea.append("\n");
+//
+//
+//
+//			}
+//		}, 10000, 10000);
+//	}
 
 	@Override
 	public void connectionLost(Throwable cause) {
@@ -127,7 +128,7 @@ public class Backup extends JFrame implements MqttCallback {
 		String text = new String(message.getPayload());
 		messagesReceived.put(new Message(topic, message));
 		textArea.append("Message received: " + text + " from topic: " + topic + "\n");
-		textArea.append("Added to backup queue\n");
+	
 		textArea.append("---------------------------\n");
 	}
 
@@ -166,7 +167,7 @@ public class Backup extends JFrame implements MqttCallback {
 
 			System.out.println("Connection received: " + conSocket.toString());
 			in = new ObjectInputStream(conSocket.getInputStream());
-			startTimer();
+	//		startTimer();
 			serve();
 			
 		} catch (IOException e) {
@@ -177,19 +178,16 @@ public class Backup extends JFrame implements MqttCallback {
 	private void serve() {
 		while (true) {
 			try {
-				textArea.append("Waiting for Input\n");
+				
 				Message clientInput = (Message) in.readObject();
-				textArea.append("client input: " + clientInput.toString()+"\n");
+				
 				messagesReceived.removeIf((n)->n.equals(clientInput));
 				
-				textArea.append("Messages Received after: ");
-				messagesReceived.forEach((n)->textArea.append(n+" | "));
-				textArea.append("\n");
 			} catch (IOException | ClassNotFoundException e) {
 				System.err.println("O CLOUD TO MONGO MORREU! ACUDAM!");
 				CloudToMongo.getInstance();
 				CloudToMongo.addMessagesReceived(messagesReceived);
-				System.out.println("O CLOUD TO MONGO EST¡ VIVO");
+				System.out.println("O CLOUD TO MONGO EST√Å VIVO");
 				break;
 				
 				//e.printStackTrace();
