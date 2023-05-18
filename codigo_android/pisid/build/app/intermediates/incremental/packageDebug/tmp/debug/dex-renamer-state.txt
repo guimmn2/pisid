@@ -1,0 +1,4 @@
+#Sat May 06 04:39:25 BST 2023
+base.0=C\:\\pisid\\build\\app\\intermediates\\dex\\debug\\mergeDexDebug\\classes.dex
+path.0=classes.dex
+renamed.0=classes.dex
