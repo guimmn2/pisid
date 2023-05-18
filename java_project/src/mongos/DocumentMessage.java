@@ -5,9 +5,9 @@ import org.bson.Document;
 
 public class DocumentMessage implements Serializable {
     private String topic;
-    private Document document;
+    private String document;
 
-    public DocumentMessage(String topic, Document document) {
+    public DocumentMessage(String topic, String document) {
         this.topic = topic;
         this.document = document;
     }
@@ -16,7 +16,7 @@ public class DocumentMessage implements Serializable {
         return topic;
     }
 
-    public Document getDocument() {
+    public String getDocument() {
         return document;
     }
 }
