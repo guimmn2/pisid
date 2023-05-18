@@ -99,19 +99,6 @@
             const raiva_rats = document.getElementById('raiva_rats').value;
 
 
-            const temp_format = /^(\d+|\d+.\d+)$/;
-            if (limiteratossala > numeroratos) {
-                alert('O limite de ratos por sala não pode ser maior que o número de ratos.');
-                event.preventDefault(); 
-            } else if (php_rats > numeroratos || peste_rats > numeroratos || covid_rats > numeroratos || lepra_rats > numeroratos || raiva_rats > numeroratos) {
-                alert('Não é possível aplicar uma substância em uma quantidade de ratos maior do que o número de ratos escolhidos para a experiência');
-                event.preventDefault();
-            }
-            if (!temp_format.test(temperaturaideal) || !temp_format.test(variacaotemperaturamaxima)) {
-                alert('Formato errado para Temperatura Ideal ou Variação máxima de temperatura.');
-                event.preventDefault(); 
-            }
-
         });
 
     </script>

@@ -255,12 +255,12 @@
             }
     
             //TODO 
-            if (is_null($row1['DataHoraInicio'])) {
-                // pode editar
-                echo "<button>Editar experiência</button>"; 
-            } else {
-                echo "<button disabled>Editar experiência</button>";
-            }
+            //if (is_null($row1['DataHoraInicio'])) {
+            //    // pode editar
+            //    echo "<button>Editar experiência</button>"; 
+            //} else {
+            //    echo "<button disabled>Editar experiência</button>";
+            //}
         }
             // fim da div
             echo "</div>";

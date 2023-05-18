@@ -64,7 +64,9 @@
     }
 
     if ($results->num_rows == 0) {
+        echo "<div class='table-container'>";
         echo "Nenhuma experiencia a mostrar";
+        echo "</div>";
     } else {
         // display the list of experiences, por motivos de maldição tive q criar um container diferente para a lista de exp
         echo "<div class='table-container'>";

@@ -19,11 +19,12 @@ $phone = $_POST['phone'];
 $email = $_POST['email'];
 
 $random_password = random_str(8);
+$passwordala = "12345678";
 //call DB SP according to role
 if ($role == 'investigador') {
         if ($stmt = $conn->prepare("CALL CreateInvestigator(?, ?, ? ,?)")) {
                 print_r("pass: $random_password ");
-                $stmt->bind_param('ssss', $name, $phone, $email, $random_password);
+                $stmt->bind_param('ssss', $name, $phone, $email, $passwordala);
                 if ($stmt->execute()) {
                         echo "registered investigator successfully";
                         header('Location: experience_list.php');
@@ -33,7 +34,7 @@ if ($role == 'investigador') {
         }
 } else if ($role == 'tecnico') {
         if ($stmt = $conn->prepare("CALL CreateTechnician(?, ?, ? ,?)")) {
-                $stmt->bind_param('ssss', $name, $phone, $email, $random_password);
+                $stmt->bind_param('ssss', $name, $phone, $email, $passwordala);
                 if ($stmt->execute()) {
                         echo "registered technician successfully";
                         //TODO

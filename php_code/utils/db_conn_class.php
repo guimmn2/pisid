@@ -8,7 +8,7 @@ class DbConn
     private $conn;
 
     function __construct($db, $host, $email, $password) {
-        //get creds
+        //get credentials
         $this->db = $db;
         $this->host = $host;
         $this->email = $email;
@@ -19,9 +19,10 @@ class DbConn
 
     //establish connection
     private function connect() {
-        $this->conn = new mysqli($this->host, $this->email, $this->password, $this->db, '3306');
+        $this->conn = @new mysqli($this->host, $this->email, $this->password, $this->db, '3307');
         if ($this->conn->connect_errno) {
-            die('Could not connect to DB '. $this->conn->connect_error);
+            echo '<script type="text/javascript">alert("Usuário não existe"); window.location.href = "login.html";</script>';
+            die();
         }
     }
 
@@ -32,6 +33,5 @@ class DbConn
         }
         return $this->conn;
     }
-
 }
 ?>

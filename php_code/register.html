@@ -10,15 +10,15 @@
     <h1>Registar Utilizador</h1>
     <form action="register.php" method="post" autocomplete="off">
         <label for="name">Nome</label>
-        <input type="text" id="name" name="name" required >
+        <input type="text" id="name" name="name" autocomplete="off" required >
         <br>
         <label for="phone">Telefone</label>
-        <input type="text" id="phone" name="phone" pattern="[0-9]{9}">
+        <input type="text" id="phone" name="phone" autocomplete="off" pattern="[0-9]{9}">
         <br>
         <label for="email">Email</label>
-        <input type="email" id="email" name="email">
+        <input type="email" id="email" autocomplete="off" name="email">
         <br>
-        <label for="role">Tipo</label>
+        <label for="role" autocomplete="off" >Tipo</label>
         <select name="role" id="role">
             <option value="investigador">Investigador</option> <!--n sei se o admin app pode criar outros tipos de user, se for apenas investigador n é necessario o select option-->>
             <option value="tecnico">Tecnico</option> <!--n sei se o admin app pode criar outros tipos de user, se for apenas tecnico n é necessario o select option-->>
