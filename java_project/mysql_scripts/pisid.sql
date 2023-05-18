@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: May 04, 2023 at 02:13 PM
+-- Generation Time: May 18, 2023 at 02:49 PM
 -- Server version: 10.10.2-MariaDB
 -- PHP Version: 8.0.26
 
@@ -29,7 +29,7 @@ DROP PROCEDURE IF EXISTS `StartNextExp`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `StartNextExp` (IN `startTime` TIMESTAMP)  NO SQL BEGIN
 
 DECLARE i INT DEFAULT 2;
-DECLARE nrRooms, id_exp, id_exists INT;
+DECLARE nrRooms, id_exp, id_exists, numero_ratos INT;
 
 SELECT IDExperiencia INTO id_exp FROM parametrosadicionais 
 WHERE parametrosadicionais.DataHoraInicio is NULL LIMIT 1;
@@ -41,16 +41,19 @@ WHERE IDExperiencia = id_exp;
 SELECT numerosalas INTO nrRooms FROM configuracaolabirinto
 ORDER BY IDConfiguracao DESC LIMIT 1;
 
-SELECT COUNT(*) INTO id_exists FROM medicoessala
-WHERE medicoessala.IDExperiencia = id_exp;
+SELECT experiencia.numeroratos INTO numero_ratos FROM experiencia
+WHERE experiencia.id = id_exp;
 
-IF id_exists = 1 THEN
+INSERT INTO medicoessala(IDExperiencia, numeroratosfinal, sala) 
+VALUES (id_exp, numero_ratos, 1);
+
+
     WHILE i <= nrRooms DO
         INSERT INTO medicoessala (IDExperiencia, numeroratosfinal, sala)
         VALUES (id_exp, 0, i);  
     SET i = i + 1;
     END WHILE;
-END IF;
+
 
 END$$
 
@@ -368,7 +371,6 @@ CREATE TRIGGER `SetParameters` AFTER INSERT ON `experiencia` FOR EACH ROW BEGIN
 INSERT INTO parametrosadicionais(IDExperiencia)
 VALUES(NEW.id);
 
-INSERT INTO medicoessala(IDExperiencia, numeroratosfinal, sala) VALUES (new.id, new.numeroratos, 1);
 
 END
 $$
@@ -518,7 +520,9 @@ INSERT INTO `medicoespassagens` (`IDMongo`, `hora`, `salaentrada`, `salasaida`, 
 ('6452e569d19d36652db8dc00', '2023-05-03 22:51:18', 6, 8, 32),
 ('6452e569d19d36652db8dc02', '2023-05-03 22:51:18', 1, 2, 32),
 ('6452e56cd19d36652db8dc0c', '2023-05-03 22:51:18', 7, 5, 32),
-('6452f17c9e071e5c8bcbdf0d', '2023-05-03 23:42:41', 0, 0, NULL);
+('6452f17c9e071e5c8bcbdf0d', '2023-05-03 23:42:41', 0, 0, NULL),
+('hhhhh', '2023-05-18 14:47:32', 0, 0, NULL),
+('jjhjhjhjh', '2023-05-18 14:48:53', 0, 0, NULL);
 
 --
 -- Triggers `medicoespassagens`
@@ -646,16 +650,16 @@ CREATE TABLE IF NOT EXISTS `medicoessala` (
 --
 
 INSERT INTO `medicoessala` (`IDExperiencia`, `numeroratosfinal`, `sala`) VALUES
-(32, 22, 1),
-(32, 1, 2),
+(32, 40, 1),
+(32, 0, 2),
 (32, 0, 3),
 (32, 0, 4),
-(32, 4, 5),
-(32, 2, 6),
-(32, 1, 7),
-(32, 2, 8),
+(32, 0, 5),
+(32, 0, 6),
+(32, 0, 7),
+(32, 0, 8),
 (32, 0, 9),
-(32, 8, 10);
+(32, 0, 10);
 
 --
 -- Triggers `medicoessala`
@@ -1104,7 +1108,7 @@ CREATE TABLE IF NOT EXISTS `parametrosadicionais` (
 --
 
 INSERT INTO `parametrosadicionais` (`IDExperiencia`, `DataHoraInicio`, `DataHoraFim`, `MotivoTermino`, `DataHoraPortasExtAbertas`, `PeriodicidadeAlerta`) VALUES
-(32, '2023-05-03 22:46:31', '2023-05-03 23:42:41', 'Acabou sem anomalias', NULL, 30);
+(32, '2023-05-18 14:48:53', NULL, 'Acabou sem anomalias', NULL, 30);
 
 --
 -- Triggers `parametrosadicionais`
