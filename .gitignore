@@ -1,13 +1,11 @@
 java_project/config_files
+*.ini
 /servers
-<<<<<<< HEAD
-old_stuff/java_to_mongo_mqtt/CloudToMongo_*/
-old_stuff/java_mqtt/SimulateSensor*/
-old_stuff/java_mqtt/ReceiveCloud*/
-=======
 java_to_mongo_mqtt/CloudToMongo_*/
+java_project/CloudToMongo*/
 java_mqtt/SimulateSensor*/
 java_mqtt/ReceiveCloud*/
 java_project/paho*
 java_project/SimulateSensor*
->>>>>>> stored_procs
+php_code/constants.php
+
