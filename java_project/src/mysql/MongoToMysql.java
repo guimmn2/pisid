@@ -402,6 +402,7 @@ public class MongoToMysql extends JFrame {
 			ObjectInputStream inputStream;
 			inputStream = new ObjectInputStream(clientSocket.getInputStream());
 			while(true) {
+				System.out.println("Linha do erro, why?:: " +  inputStream.readObject());
 				
 				DocumentMessage message = (DocumentMessage) inputStream.readObject();
 

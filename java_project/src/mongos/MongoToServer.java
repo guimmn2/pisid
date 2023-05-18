@@ -100,12 +100,12 @@ public class MongoToServer {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-                    try {
-						outputStream.flush();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+//                    try {
+//						outputStream.flush();
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
 					doc.put("sent", 1);
 					db.getCollection(mongo_collection).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
 					
@@ -134,12 +134,12 @@ public class MongoToServer {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-                    try {
-						outputStream.flush();
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+//                    try {
+//						outputStream.flush();
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
                     
                     doc.put("sent", 1);
                     db.getCollection(mongo_collection_1).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
@@ -177,12 +177,12 @@ public class MongoToServer {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-	                    try {
-							outputStream.flush();
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+//	                    try {
+//							outputStream.flush();
+//						} catch (IOException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//						}
 	                    doc.put("sent", 1);
 	                    db.getCollection(mongo_collection_2).replaceOne(eq("_id", doc.getObjectId("_id")), doc);
 					}
@@ -198,7 +198,7 @@ public class MongoToServer {
 		});
 
 		thread1.start();
-		thread2.start();
+	//	thread2.start();
 		thread3.start();
 
 
