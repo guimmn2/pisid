@@ -253,17 +253,19 @@
                 } else {
                     echo "<button disabled>Abrir portas exteriores</button>";
             }
-    
-            //TODO 
-            //if (is_null($row1['DataHoraInicio'])) {
-            //    // pode editar
-            //    echo "<button>Editar experiência</button>"; 
-            //} else {
-            //    echo "<button disabled>Editar experiência</button>";
-            //}
         }
+    
+        if ($_SESSION['role'] == INVESTIGATOR) { 
+            //TODO 
+            if (is_null($row1['DataHoraInicio'])) {
+                // pode editar
+                echo "<a href='ui_edit_exp.php?id=". $id ."'><button>Editar experiência</button></a>";
+            } else {
+                echo "<button disabled>Editar experiência</button>";
+            }
             // fim da div
             echo "</div>";
+        }
         }   
     }
     $conn->close();
