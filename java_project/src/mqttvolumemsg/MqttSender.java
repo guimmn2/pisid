@@ -134,7 +134,8 @@ public class MqttSender implements MqttCallback {
 						+ "\", SalaEntrada: 0, SalaSaida: 0}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("readings/movs", mqtt_message);
+			//	mqttclient.publish("readings/movs", mqtt_message);
+				mqttclient.publish("test_rats", mqtt_message);
 			}
 //				else if (random <= 0.5) {
 //				
@@ -148,7 +149,11 @@ public class MqttSender implements MqttCallback {
 						+ "\", SalaEntrada: 1, SalaSaida: 2}";
 				MqttMessage mqtt_message = new MqttMessage();
 				mqtt_message.setPayload(message.getBytes());
-				mqttclient.publish("readings/movs", mqtt_message);
+				//mqttclient.publish("readings/movs", mqtt_message);
+				
+				
+				mqttclient.publish("test_rats", mqtt_message);
+				
 			}
 			/*
 			 * String message = "{_id: \"" + randomString + "\", Hora: \"" + timestampString

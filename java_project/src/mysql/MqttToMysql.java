@@ -1,8 +1,15 @@
 package mysql;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -33,7 +40,7 @@ import org.eclipse.paho.client.mqttv3.*;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 @SuppressWarnings("serial")
-public class MqttToMysql extends JFrame implements MqttCallback {
+public class MqttToMysql extends JFrame {
 
 	private JTextArea textArea;
 	private static String dbUrl;
@@ -44,7 +51,7 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 	private static final long RESET_TIME_MS = 4000; // Qual é o tempo máximo para dar reset a um contador
 	private static int[] varRooms; // Contadores em que cada i + 1 corresponde a uma sala (Sala 1 = varRooms[0])
 	private static long[] lastUpdateTime; // Em cada posição diz quando foi a última vez que foi atualizado o contador
-											// da sala correspondente
+	// da sala correspondente
 
 	static BlockingQueue<String> temperatureQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
 	static BlockingQueue<String> movementQueue = new LinkedBlockingQueue<>(MQTT_MESSAGE_QUEUE_SIZE);
@@ -65,50 +72,57 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 		add(scrollPane);
 
 		// Connect to the MQTT broker
-		String broker = "tcp://broker.mqtt-dashboard.com:1883";
-		String clientId = "5005";
-		MemoryPersistence persistence = new MemoryPersistence();
-		try {
-			MqttClient mqttClient = new MqttClient(broker, clientId, persistence);
-			mqttClient.setCallback(this);
-			MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
-			mqttConnectOptions.setUserName("SQL");
-			String aux = "Golfinho";
-			mqttConnectOptions.setPassword(aux.toCharArray());
-			mqttConnectOptions.setCleanSession(false);
-			mqttClient.connect(mqttConnectOptions);
+		//		String broker = "tcp://broker.mqtt-dashboard.com:1883";
+		//		String clientId = "5005";
+		//		MemoryPersistence persistence = new MemoryPersistence();
+		//		try {
+		//			MqttClient mqttClient = new MqttClient(broker, clientId, persistence);
+		//			mqttClient.setCallback(this);
+		//			MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+		//			mqttConnectOptions.setUserName("SQL");
+		//			String aux = "Golfinho";
+		//			mqttConnectOptions.setPassword(aux.toCharArray());
+		//			mqttConnectOptions.setCleanSession(false);
+		//			mqttClient.connect(mqttConnectOptions);
+		//
+		//			// Subscribe to three MQTT topics
+		//			mqttClient.subscribe("lightWarnings");
+		//			mqttClient.subscribe("readings/temps");
+		//			mqttClient.subscribe("readings/movs");
+		//			mqttClient.subscribe("test_rats");
 
-			// Subscribe to three MQTT topics
-			mqttClient.subscribe("lightWarnings");
-			mqttClient.subscribe("readings/temps");
-			mqttClient.subscribe("readings/movs");
+		// get SQL configs from .ini file
+		Properties p = new Properties();
+		p.load(new FileInputStream("config_files/WriteMysql.ini"));
+		dbUrl = p.getProperty("sql_database_connection_to");
+		dbPassword = p.getProperty("sql_database_password_to");
+		dbUser = p.getProperty("sql_database_user_to");
+		// --
 
-			// get SQL configs from .ini file
-			Properties p = new Properties();
-			p.load(new FileInputStream("config_files/WriteMysql.ini"));
-			dbUrl = p.getProperty("sql_database_connection_to");
-			dbPassword = p.getProperty("sql_database_password_to");
-			dbUser = p.getProperty("sql_database_user_to");
-			// --
+		// Set up HikariCP connection pool
+		HikariConfig config = new HikariConfig();
 
-			// Set up HikariCP connection pool
-			HikariConfig config = new HikariConfig();
+		config.setJdbcUrl(dbUrl);
+		config.setUsername(dbUser);
+		config.setPassword(dbPassword);
+		config.setMaximumPoolSize(N_TABLES_TO_WRITE);
+		dataSource = new HikariDataSource(config);
 
-			config.setJdbcUrl(dbUrl);
-			config.setUsername(dbUser);
-			config.setPassword(dbPassword);
-			config.setMaximumPoolSize(N_TABLES_TO_WRITE);
-			dataSource = new HikariDataSource(config);
-
-		} catch (MqttException e) {
-			e.printStackTrace();
-		}
+		//		} catch (MqttException e) {
+		//			e.printStackTrace();
+		//		}
 
 		setVisible(true);
 	}
 
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		new MqttToMysql();
+		try {
+			serve();
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		// movement thread
 		new Thread(new Runnable() {
@@ -124,9 +138,16 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 						ArrayList<Integer> roomPairFromMqtt = new ArrayList<>();
 
 						String message = movementQueue.take();
-						JsonObject objMSG = JsonParser.parseString(message).getAsJsonObject();
+						System.out.println("Queue Mov: " + message);
+
+						JsonParser parser = new JsonParser();
+						JsonObject objMSG = parser.parse(message).getAsJsonObject();
+
+
 
 						String id = objMSG.get("_id").getAsJsonObject().get("$oid").getAsString();
+
+						System.out.println("JSON ID: " + id);
 						String time = objMSG.get("Hora").getAsString();
 						int nRoomRatLeft = objMSG.get("SalaEntrada").getAsInt();
 						int nRoomRatJoin = objMSG.get("SalaSaida").getAsInt();
@@ -187,6 +208,8 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 
 						}
 						for (ArrayList<Integer> arr : roomPairsFromSql) {
+
+
 							// valida salas antes de chamar sp
 							if (arr.containsAll(roomPairFromMqtt) || nRoomRatJoin == 0 && nRoomRatLeft == 0) {
 								try {
@@ -252,7 +275,7 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 												varRooms[nRoomRatJoin - 1] = 0;
 											}
 										}
-
+										System.out.println("cssssssssssssssssssssss");
 										cs.executeUpdate();
 									}
 
@@ -387,37 +410,117 @@ public class MqttToMysql extends JFrame implements MqttCallback {
 
 	}
 
-	@Override
-	public void connectionLost(Throwable cause) {
-		cause.printStackTrace();
+	//	@Override
+	//	public void connectionLost(Throwable cause) {
+	//		cause.printStackTrace();
+	//	}
+
+	//	@Override
+	//	public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
+	//		// Display the received message and topic in the text area
+	//		textArea.append("Received: " + mqttMessage + "\n");
+	//		String message = new String(mqttMessage.getPayload());
+	//		System.out.println(topic);
+	//		switch (topic) {
+	//		case "readings/temps": {
+	//			temperatureQueue.put(message);
+	//			break;
+	//		}
+	//		case "readings/movs": {
+	//		
+	//			movementQueue.put(message);
+	//			break;
+	//		}
+	//		
+	//		case "test_rats": {
+	//			
+	//			movementQueue.put(message);
+	//			break;
+	//		}
+	//		
+	//		case "lightWarnings": {
+	//			alertsQueue.put(message);
+	//			break;
+	//		}
+	//		default:
+	//			throw new IllegalArgumentException("Unexpected value: " + topic);
+	//		}
+	//
+	//	}
+
+
+
+	//@Override
+	public static void serve() throws Exception {
+//		
+//		InetAddress inetAddress = InetAddress.getLocalHost();
+//        String ipAddress = inetAddress.getHostAddress();
+//        System.out.println("Server IP Address: " + ipAddress);
+        
+		try (ServerSocket serverSocket = new ServerSocket(1234)) {
+			
+			System.out.println("Server started. Waiting for clients...");
+
+			Socket clientSocket = serverSocket.accept();
+			System.out.println("Client connected.");
+
+			// Communication with the client
+			//            BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			//            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
+			ObjectInputStream inputStream;
+			inputStream = new ObjectInputStream(clientSocket.getInputStream());
+			while(true) {
+				
+				DocumentMessage message = (DocumentMessage) inputStream.readObject();
+
+				String topic = message.getTopic();
+
+				//            String topic = reader.readLine();
+				//            System.out.println("Received topic: " + topic);
+				//
+				//            String message = reader.readLine();
+				//            System.out.println("Received message: " + message);
+
+
+
+				// Process the message based on the topic
+				switch (topic) {
+				case "readings/temps":
+					// Handle temperature readings
+					temperatureQueue.put(message.getDocument().toString());
+					break;
+				case "readings/movs":
+					// Handle movement readings
+					movementQueue.put(message.getDocument().toString());
+					break;
+				case "test_rats":
+					// Handle test rats
+					movementQueue.put(message.getDocument().toString());
+					break;
+				case "lightWarnings":
+					// Handle light warnings
+					alertsQueue.put(message.getDocument().toString());
+					break;
+				default:
+					throw new IllegalArgumentException("Unexpected value: " + topic);
+				}
+
+			}
+
+			// Cleanup
+			//  writer.close();
+//			inputStream.close();
+//			clientSocket.close();
+//			serverSocket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	@Override
-	public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
-		// Display the received message and topic in the text area
-		textArea.append("Received: " + mqttMessage + "\n");
-		String message = new String(mqttMessage.getPayload());
-		switch (topic) {
-		case "readings/temps": {
-			temperatureQueue.put(message);
-			break;
-		}
-		case "readings/movs": {
-			movementQueue.put(message);
-			break;
-		}
-		case "lightWarnings": {
-			alertsQueue.put(message);
-			break;
-		}
-		default:
-			throw new IllegalArgumentException("Unexpected value: " + topic);
-		}
 
-	}
 
-	@Override
-	public void deliveryComplete(IMqttDeliveryToken token) {
-		// Not used in this example
-	}
+	//	@Override
+	//	public void deliveryComplete(IMqttDeliveryToken token) {
+	//		// Not used in this example
+	//	}
 }
