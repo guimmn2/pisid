@@ -21,6 +21,10 @@ BEGIN
   SET @grant_query = CONCAT("GRANT SELECT ON pisid.medicoespassagens to '", email, "'@'localhost'");
   PREPARE stmt FROM @grant_query;
   EXECUTE stmt;
+      -- Grant privileges on medicoessala
+  SET @grant_query = CONCAT("GRANT SELECT ON pisid.medicoessala to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
     SET @grant_query = CONCAT("GRANT SELECT ON pisid.alerta to '", email, "'@'localhost'");
   PREPARE stmt FROM @grant_query;
   EXECUTE stmt;

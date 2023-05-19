@@ -14,8 +14,24 @@ BEGIN
   SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.experiencia to '", email, "'@'localhost'");
   PREPARE stmt FROM @grant_query;
   EXECUTE stmt;
+    -- Grant privileges on alerta
+  SET @grant_query = CONCAT("GRANT SELECT ON pisid.alerta to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
     -- Grant privileges on parametrosadicionais
   SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.parametrosadicionais to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+  -- Grant privileges on medicoessala
+  SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.medicoessala to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+    -- Grant privileges on substanciasexperiencia
+  SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.substanciasexperiencia to '", email, "'@'localhost'");
+  PREPARE stmt FROM @grant_query;
+  EXECUTE stmt;
+      -- Grant privileges on odoresexperiencia
+  SET @grant_query = CONCAT("GRANT SELECT, INSERT, UPDATE ON pisid.odoresexperiencia to '", email, "'@'localhost'");
   PREPARE stmt FROM @grant_query;
   EXECUTE stmt;
   -- grant select on utilizador
