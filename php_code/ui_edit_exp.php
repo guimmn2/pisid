@@ -83,10 +83,14 @@
         die();
     }
 
-
+    //echo isset($numeroRatosArray[0]) ? $numeroRatosArray[0] : '';
+    //echo isset($numeroRatosArray[1]) ? $numeroRatosArray[1] : '';
+    //echo isset($numeroRatosArray[2]) ? $numeroRatosArray[2] : '';
+    //echo isset($numeroRatosArray[3]) ? $numeroRatosArray[3] : '';
+    //echo isset($numeroRatosArray[4]) ? $numeroRatosArray[4] : '';
     ?>
-    <h1>Criar Experiência</h1>
-    <form method="post" action="bd_create_exp.php" id="validate-form">
+    <h1>Editar experiência</h1>
+    <form method="post" action="bd_edit_exp.php" id="validate-form">
         <label for="numeroratos">Número de ratos</label>
         <input type="number" id="numeroratos" name="numeroratos" value="<?php echo $edit_numeroratos; ?>" required>
         <br>
@@ -106,12 +110,13 @@
         <textarea id="descricao" name="descricao"><?php echo $edit_descricao; ?></textarea>
         <h1>Substâncias</h1>
         <div class="subs_div">
-            <label for="php">PHP<br><input type="number" id="php_rats" name="php_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[0]) ? $numeroRatosArray[0] : ''; ?>"></label>
-            <label for="peste">Peste<br><input type="number" id="peste_rats" name="peste_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[1]) ? $numeroRatosArray[1] : ''; ?>"></label>
-            <label for="covid">Covid<br><input type="number" id="covid_rats" name="covid_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[2]) ? $numeroRatosArray[2] : ''; ?>"></label>
-            <label for="lepra">Lepra<br><input type="number" id="lepra_rats" name="lepra_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[3]) ? $numeroRatosArray[3] : ''; ?>"></label>
+            <label for="php">PHP<br><input type="number" id="php_rats" name="php_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[3]) ? $numeroRatosArray[3] : ''; ?>"></label>
+            <label for="peste">Peste<br><input type="number" id="peste_rats" name="peste_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[2]) ? $numeroRatosArray[2] : ''; ?>"></label>
+            <label for="covid">Covid<br><input type="number" id="covid_rats" name="covid_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[0]) ? $numeroRatosArray[0] : ''; ?>"></label>
+            <label for="lepra">Lepra<br><input type="number" id="lepra_rats" name="lepra_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[1]) ? $numeroRatosArray[1] : ''; ?>"></label>
             <label for="raiva">Raiva<br><input type="number" id="raiva_rats" name="raiva_rats" placeholder="Número de ratos" value="<?php echo isset($numeroRatosArray[4]) ? $numeroRatosArray[4] : ''; ?>"></label>           
         </div>
+        <input type="number" id="id" name="id" value=<?php echo $id ?> hidden>
         <br><br><br>
         <input type="submit" name="submit" value="Confirmar">
     </form>

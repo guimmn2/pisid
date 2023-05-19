@@ -19,10 +19,10 @@ class DbConn
 
     //establish connection
     private function connect() {
-        $this->conn = @new mysqli($this->host, $this->email, $this->password, $this->db, '3307');
+        $this->conn = @new mysqli($this->host, $this->email, $this->password, $this->db, '3306');
         if ($this->conn->connect_errno) {
-            echo '<script type="text/javascript">alert("Usuário não existe"); window.location.href = "login.html";</script>';
-            die();
+            //echo '<script type="text/javascript">alert("Usuário não existe"); window.location.href = "login.html";</script>';
+            die("O Utilizador não existe!");
         }
     }
 

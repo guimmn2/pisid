@@ -12,12 +12,14 @@
     $descricao = $_POST['descricao'];
     $email = $_SESSION['email'];
 
-    $id = $_GET['id'];
+    $id = $_POST['id'];
+    //$id = $_GET['id'];
+    print_r($id);
 
     if ($stmt = $conn->prepare("UPDATE experiencia SET descricao = ?, numeroratos = ?, limiteratossala = ?, segundossemmovimento = ?, temperaturaideal = ?, variacaotemperaturamaxima = ? WHERE id = ?")) {
         $stmt->bind_param('siiiddi', $descricao, $numeroratos, $limiteratossala, $segundossemmovimento, $temperaturaideal, $variacaotemperaturamaxima, $id);
         if ($stmt->execute()) {
-            header('Location: experience_list.php?=' . $id);
+            //header('Location: experience_list.php');
         } else {
             echo "Error";
         }
@@ -41,34 +43,50 @@
     $covid_rats = $_POST['covid_rats'];
     $lepra_rats = $_POST['lepra_rats'];
     $raiva_rats = $_POST['raiva_rats'];
-
-    if ($subs_stmt = $conn->prepare("UPDATE substanciasexperiencia SET numeroratos = ?, codigosubstancia = ?, IDExperiencia = ?")) {
+    print_r($php_rats);
+    print_r($peste_rats);
+    print_r($covid_rats);
+    print_r($lepra_rats);
+    print_r($raiva_rats);
+ 
+    if ($subs_stmt = $conn->prepare("UPDATE substanciasexperiencia SET numeroratos = ? WHERE IDExperiencia = ? AND codigosubstancia = ?")) {
         $php = 'PHP';
-        $subs_stmt->bind_param('isi', $php_rats, $php, $id);
+        $subs_stmt->bind_param('iis', $php_rats, $id, $php);
         $subs_stmt->execute();
         print_r('PLS WORK!!');
-
-        $peste = 'Peste';
-        $subs_stmt->bind_param('isi', $peste_rats, $peste, $id);
-        $subs_stmt->execute();
-        print_r('PLS WORK!!');
-        
-        $covid = 'Covid';
-        $subs_stmt->bind_param('isi', $covid_rats, $covid, $id);
-        $subs_stmt->execute();
-        print_r('PLS WORK!!');
-        
-        $lepra = 'Lepra';
-        $subs_stmt->bind_param('isi', $lepra_rats, $lepra, $id);
-        $subs_stmt->execute();
-        print_r('PLS WORK!!');
-        
-        $raiva = 'Raiva';
-        $subs_stmt->bind_param('isi', $raiva_rats, $raiva, $id);
-        $subs_stmt->execute();
-        print_r('PLS WORK!!');
-
     }
 
+        if($subs_stmt_peste = $conn->prepare("UPDATE substanciasexperiencia SET numeroratos = ? WHERE IDExperiencia = ? AND codigosubstancia = ?")) {
+            $peste = 'Peste';
+            $subs_stmt_peste->bind_param('iis', $peste_rats, $id, $peste);
+            $subs_stmt_peste->execute();
+            print_r('PLS WORK!!');
+
+        }
+
+        if ($subs_stmt_covid = $conn->prepare("UPDATE substanciasexperiencia SET numeroratos = ? WHERE IDExperiencia = ? AND codigosubstancia = ?")) {
+            $covid = 'Covid';
+            $subs_stmt_covid->bind_param('iis', $covid_rats, $id, $covid);
+            $subs_stmt_covid->execute();
+            print_r('PLS WORK!!');
+
+        }
+
+        if($subs_stmt_lepra = $conn->prepare("UPDATE substanciasexperiencia SET numeroratos = ? WHERE IDExperiencia = ? AND codigosubstancia = ?")) {
+            $lepra = 'Lepra';
+            $subs_stmt_lepra->bind_param('iis', $lepra_rats, $id, $lepra);
+            $subs_stmt_lepra->execute();
+            print_r('PLS WORK!!');
+
+        }
+
+        if ($subs_stmt_raiva = $conn->prepare("UPDATE substanciasexperiencia SET numeroratos = ? WHERE IDExperiencia = ? AND codigosubstancia = ?")) {
+            $raiva = 'Raiva';
+            $subs_stmt_raiva->bind_param('iis', $raiva_rats, $id, $raiva);
+            $subs_stmt_raiva->execute();
+            print_r('PLS WORK!!');
+
+        }
+    header('Location: experience_list.php');
     mysqli_close($conn);
 ?>
